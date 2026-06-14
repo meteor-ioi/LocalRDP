@@ -28,6 +28,9 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
+    - name: Build Zydis Dependency (Release x64)
+      run: msbuild TermWrap/zydis/msvc/zydis.sln /p:Configuration=Release /p:Platform=x64
+
     - name: Build TermWrap C++ (Release x64)
       run: msbuild TermWrap/TermWrap.sln /p:Configuration=Release /p:Platform=x64
 
