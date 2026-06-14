@@ -30,7 +30,7 @@ jobs:
 
     - name: Build Zydis Dependency (Release x64)
       run: |
-        cmake -B TermWrap/zydis/build -S TermWrap/zydis -A x64 -DCMAKE_BUILD_TYPE=Release
+        cmake -B TermWrap/zydis/build -S TermWrap/zydis -A x64 -DCMAKE_BUILD_TYPE=Release -DZYDIS_BUILD_SHARED_LIB=ON
         cmake --build TermWrap/zydis/build --config Release
         New-Item -ItemType Directory -Force -Path TermWrap\zydis\msvc\bin\ReleaseX64
         Copy-Item TermWrap\zydis\build\Release\Zydis.lib TermWrap\zydis\msvc\bin\ReleaseX64\ -Force
