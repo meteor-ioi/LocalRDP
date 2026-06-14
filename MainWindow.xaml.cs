@@ -20,6 +20,8 @@ namespace rdpManager
         private ObservableCollection<ConnectionItem> _connections = new ObservableCollection<ConnectionItem>();
         private DispatcherTimer _thumbnailTimer;
         private TabItem _dashboardTab;
+        private System.Windows.Forms.NotifyIcon? _notifyIcon;
+        private bool _isExplicitExit = false;
 
         public MainWindow()
         {
@@ -44,6 +46,9 @@ namespace rdpManager
 
             // 检测 TermWrap 补丁状态
             RefreshTermWrapStatus();
+
+            // 初始化系统托盘图标
+            InitializeNotifyIcon();
 
             this.Loaded += MainWindow_Loaded;
         }
@@ -705,6 +710,98 @@ namespace rdpManager
             {
                 MessageBox.Show($"卸载失败: {error}", "还原错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void InitializeNotifyIcon()
+        {
+            try
+            {
+                _notifyIcon = new System.Windows.Forms.NotifyIcon();
+                _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+                _notifyIcon.Text = "RDP Manager - RPA 隔离桌面管理器";
+                _notifyIcon.Visible = true;
+                _notifyIcon.DoubleClick += (s, args) =>
+                {
+                    ShowMainWindow();
+                };
+
+                var contextMenu = new System.Windows.Forms.ContextMenu();
+                contextMenu.MenuItems.Add(new System.Windows.Forms.MenuItem("显示主窗口", (s, args) => ShowMainWindow()));
+                contextMenu.MenuItems.Add(new System.Windows.Forms.MenuItem("退出程序", (s, args) => ExitApplication()));
+                _notifyIcon.ContextMenu = contextMenu;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("初始化系统托盘图标失败", ex);
+            }
+        }
+
+        private void ShowMainWindow()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                this.Show();
+                if (this.WindowState == WindowState.Minimized)
+                {
+                    this.WindowState = WindowState.Normal;
+                }
+                this.Activate();
+            });
+        }
+
+        private void ExitApplication()
+        {
+            _isExplicitExit = true;
+            _notifyIcon?.Dispose();
+            
+            // 安全断开所有连接
+            foreach (var conn in _connections)
+            {
+                try
+                {
+                    conn.RdpControl?.Disconnect();
+                }
+                catch { }
+            }
+            
+            Application.Current.Shutdown();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            if (_isExplicitExit)
+            {
+                base.OnClosing(e);
+                return;
+            }
+
+            e.Cancel = true; // 拦截默认关闭动作
+
+            var confirmWin = new CloseConfirmWindow
+            {
+                Owner = this
+            };
+            confirmWin.ShowDialog();
+
+            if (confirmWin.Result == CloseConfirmResult.Exit)
+            {
+                ExitApplication();
+            }
+            else if (confirmWin.Result == CloseConfirmResult.Minimize)
+            {
+                this.Hide();
+                try
+                {
+                    _notifyIcon?.ShowBalloonTip(3000, "RDP Manager 已最小化", "程序已最小化到系统托盘，双击托盘图标可重新打开主界面。", System.Windows.Forms.ToolTipIcon.Info);
+                }
+                catch { }
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _notifyIcon?.Dispose();
+            base.OnClosed(e);
         }
     }
 
