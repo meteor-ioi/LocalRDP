@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using MSTSCLib;
+using rdpManager.Helpers;
 
 namespace rdpManager.Views
 {
