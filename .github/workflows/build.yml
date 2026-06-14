@@ -36,7 +36,7 @@ jobs:
         Copy-Item TermWrap\zydis\build\Release\Zydis.lib TermWrap\zydis\msvc\bin\ReleaseX64\ -Force
 
     - name: Build TermWrap C++ (Release x64)
-      run: msbuild TermWrap/TermWrap.sln /p:Configuration=Release /p:Platform=x64 /p:PreprocessorDefinitions="NDEBUG;_CONSOLE;ZYDIS_STATIC_BUILD"
+      run: msbuild TermWrap/TermWrap.sln /p:Configuration=Release /p:Platform=x64
 
     - name: Copy Built DLLs to Resources
       run: |
