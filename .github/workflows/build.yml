@@ -48,6 +48,19 @@ jobs:
         Copy-Item TermWrap\x64\Release\UmWrap.dll Resources\ -Force
         Copy-Item TermWrap\zydis\build\Release\Zydis.dll Resources\ -Force
 
+    - name: Generate MSTSCLib ActiveX Interop Assemblies
+      run: |
+        $aximp = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft SDKs\Windows" -Filter "aximp.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $aximp) {
+            $aximp = Get-ChildItem -Path "C:\Program Files" -Filter "aximp.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        }
+        if (-not $aximp) {
+            throw "Could not find aximp.exe in Windows SDK path"
+        }
+        Write-Host "Found aximp.exe at: $aximp"
+        New-Item -ItemType Directory -Force -Path Libs
+        & $aximp C:\Windows\System32\mstscax.dll /out:Libs\AxInterop.MSTSCLib.dll /rcw:Libs\Interop.MSTSCLib.dll
+
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:

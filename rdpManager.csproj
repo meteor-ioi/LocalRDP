@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <ImplicitUsings>disable</ImplicitUsings>
     <UseWpf>true</UseWpf>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -16,14 +16,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <COMReference Include="MSTSCLib">
-      <WrapperTool>aximp</WrapperTool>
-      <Lcid>0</Lcid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Guid>{8c11bfc1-912e-11d2-8519-0000f811560c}</Guid>
-      <Isolated>false</Isolated>
-    </COMReference>
+    <Reference Include="Interop.MSTSCLib">
+      <HintPath>Libs\Interop.MSTSCLib.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="AxInterop.MSTSCLib">
+      <HintPath>Libs\AxInterop.MSTSCLib.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
