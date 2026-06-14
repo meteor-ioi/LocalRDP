@@ -725,10 +725,10 @@ namespace rdpManager
                     ShowMainWindow();
                 };
 
-                var contextMenu = new System.Windows.Forms.ContextMenu();
-                contextMenu.MenuItems.Add(new System.Windows.Forms.MenuItem("显示主窗口", (s, args) => ShowMainWindow()));
-                contextMenu.MenuItems.Add(new System.Windows.Forms.MenuItem("退出程序", (s, args) => ExitApplication()));
-                _notifyIcon.ContextMenu = contextMenu;
+                var contextMenu = new System.Windows.Forms.ContextMenuStrip();
+                contextMenu.Items.Add("显示主窗口", null, (s, args) => ShowMainWindow());
+                contextMenu.Items.Add("退出程序", null, (s, args) => ExitApplication());
+                _notifyIcon.ContextMenuStrip = contextMenu;
             }
             catch (Exception ex)
             {
