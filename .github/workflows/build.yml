@@ -29,7 +29,11 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Build Zydis Dependency (Release x64)
-      run: msbuild TermWrap/zydis/msvc/zydis.sln /p:Configuration=Release /p:Platform=x64
+      run: |
+        cmake -B TermWrap/zydis/build -S TermWrap/zydis -A x64 -DCMAKE_BUILD_TYPE=Release
+        cmake --build TermWrap/zydis/build --config Release
+        New-Item -ItemType Directory -Force -Path TermWrap\zydis\msvc\bin\ReleaseX64
+        Copy-Item TermWrap\zydis\build\Release\Zydis.lib TermWrap\zydis\msvc\bin\ReleaseX64\ -Force
 
     - name: Build TermWrap C++ (Release x64)
       run: msbuild TermWrap/TermWrap.sln /p:Configuration=Release /p:Platform=x64
