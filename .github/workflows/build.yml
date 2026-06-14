@@ -3,6 +3,7 @@ name: Build RDP Manager
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch: # 支持手动触发
@@ -10,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout Repository
@@ -86,10 +89,9 @@ jobs:
           /t:Publish `
           /p:Configuration=Release `
           /p:RuntimeIdentifier=win-x64 `
-          /p:SelfContained=true `
+          /p:SelfContained=false `
           /p:PublishSingleFile=true `
           /p:PublishReadyToRun=false `
-          /p:IncludeNativeLibrariesForSelfContained=true `
           /p:PublishDir=./publish
 
     - name: Upload Build Artifact
@@ -97,3 +99,14 @@ jobs:
       with:
         name: rdpManager-win-x64
         path: ./publish/rdpManager.exe
+
+    - name: Create or Update GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ./publish/rdpManager.exe
+        tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+        name: ${{ github.ref_type == 'tag' && github.ref_name || 'Latest Rolling Release' }}
+        draft: false
+        prerelease: ${{ github.ref_type != 'tag' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

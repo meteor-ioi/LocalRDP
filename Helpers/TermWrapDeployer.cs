@@ -29,9 +29,9 @@ namespace rdpManager.Helpers
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 忽略异常，默认返回未激活
+                Logger.LogError("检查并发远程桌面激活状态失败", ex);
             }
             return false;
         }
@@ -42,6 +42,7 @@ namespace rdpManager.Helpers
         public static bool DeployPatch(out string errorMessage)
         {
             errorMessage = string.Empty;
+            Logger.LogInfo("开始部署 TermWrap 补丁...");
             try
             {
                 // 1. 创建 RDP Wrapper 文件夹
@@ -64,6 +65,7 @@ namespace rdpManager.Helpers
                     if (key == null)
                     {
                         errorMessage = "未能打开 TermService 注册表项。";
+                        Logger.LogWarning("部署失败: 未能打开 TermService 注册表项。");
                         return false;
                     }
                     key.SetValue("ServiceDll", PATCHED_SERVICE_DLL, RegistryValueKind.ExpandString);
@@ -75,11 +77,13 @@ namespace rdpManager.Helpers
                 // 6. 重启远程桌面服务
                 ControlService("TermService", stop: false);
 
+                Logger.LogInfo("TermWrap 补丁部署成功。");
                 return true;
             }
             catch (Exception ex)
             {
                 errorMessage = ex.Message;
+                Logger.LogError("部署 TermWrap 补丁发生致命异常", ex);
                 return false;
             }
         }
@@ -90,6 +94,7 @@ namespace rdpManager.Helpers
         public static bool UninstallPatch(out string errorMessage)
         {
             errorMessage = string.Empty;
+            Logger.LogInfo("开始卸载 TermWrap 补丁...");
             try
             {
                 // 1. 停止远程桌面服务
@@ -112,16 +117,19 @@ namespace rdpManager.Helpers
                         Directory.Delete(RDP_WRAPPER_DIR, true);
                     }
                 }
-                catch
+                catch (Exception deleteEx)
                 {
                     errorMessage = "补丁已卸载，但部分 DLL 仍被系统锁定，重启电脑后 RDP Wrapper 文件夹将被完全删除。";
+                    Logger.LogWarning($"卸载补丁后清理文件夹受阻 (预期行为): {deleteEx.Message}");
                 }
 
+                Logger.LogInfo("TermWrap 补丁卸载操作执行完毕。");
                 return true;
             }
             catch (Exception ex)
             {
                 errorMessage = ex.Message;
+                Logger.LogError("卸载 TermWrap 补丁发生致命异常", ex);
                 return false;
             }
         }

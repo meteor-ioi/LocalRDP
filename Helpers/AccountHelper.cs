@@ -60,6 +60,7 @@ namespace rdpManager.Helpers
             catch (Exception ex)
             {
                 errorMessage = ex.Message;
+                Logger.LogError($"创建机器人账户 '{username}' 失败", ex);
                 return false;
             }
         }
@@ -88,7 +89,7 @@ namespace rdpManager.Helpers
             catch (Exception ex)
             {
                 // 记录错误或抛出，但为了稳定性，如果是组已包含该用户导致的异常可忽略
-                System.Diagnostics.Debug.WriteLine($"添加用户到组时发生异常: {ex.Message}");
+                Logger.LogWarning($"将用户加入本地组时发生异常 (可能是已存在): {ex.Message}");
             }
         }
 
@@ -119,7 +120,7 @@ namespace rdpManager.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"应用首登优化注册表时出错: {ex.Message}");
+                Logger.LogWarning($"应用首登优化注册表时出错: {ex.Message}");
             }
         }
 
@@ -190,7 +191,7 @@ namespace rdpManager.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取本地账户列表时出错: {ex.Message}");
+                Logger.LogError("获取本地账户列表时发生异常", ex);
             }
             return accounts;
         }
@@ -234,6 +235,7 @@ namespace rdpManager.Helpers
             catch (Exception ex)
             {
                 errorMessage = ex.Message;
+                Logger.LogError($"删除机器人账户 '{username}' 失败", ex);
                 return false;
             }
         }

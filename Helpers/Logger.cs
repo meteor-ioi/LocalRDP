@@ -1,0 +1,52 @@
+using System;
+using System.IO;
+
+namespace rdpManager.Helpers
+{
+    public static class Logger
+    {
+        private static readonly string LogFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "rdpManager.log");
+        private static readonly object LockObj = new object();
+
+        public static void LogInfo(string message)
+        {
+            WriteLog("INFO", message);
+        }
+
+        public static void LogWarning(string message)
+        {
+            WriteLog("WARN", message);
+        }
+
+        public static void LogError(string message, Exception? ex = null)
+        {
+            string fullMessage = message;
+            if (ex != null)
+            {
+                fullMessage += $"\nException: {ex.Message}\nStackTrace:\n{ex.StackTrace}";
+            }
+            WriteLog("ERROR", fullMessage);
+        }
+
+        private static void WriteLog(string level, string message)
+        {
+            try
+            {
+                lock (LockObj)
+                {
+                    string dir = Path.GetDirectoryName(LogFilePath)!;
+                    if (!Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    string logLine = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level}] {message}{Environment.NewLine}";
+                    File.AppendAllText(LogFilePath, logLine);
+                }
+            }
+            catch
+            {
+                // 确保日志系统本身绝不抛出任何未捕获异常导致应用程序崩溃
+            }
+        }
+    }
+}
