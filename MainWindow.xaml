@@ -150,36 +150,38 @@
         </Grid.ColumnDefinitions>
 
         <!-- ======================= 左侧导航栏 ======================= -->
-        <Grid Grid.Column="0" Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="0,0,1,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="64"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="50"/>
-            </Grid.RowDefinitions>
+        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="64"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="50"/>
+                </Grid.RowDefinitions>
 
-            <!-- 软件标题 -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                <TextBlock Text="RDP Manager" FontSize="18" FontWeight="Bold" Foreground="#000000" VerticalAlignment="Center"/>
-                <Border Background="#FAFAFA" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Margin="8,0,0,0" Padding="4,2,4,2">
-                    <TextBlock Text="RPA" FontSize="10" FontWeight="Bold" Foreground="#666666"/>
-                </Border>
-            </StackPanel>
-
-            <!-- 导航菜单 -->
-            <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                <Button x:Name="NavDashboardBtn" Content="仪表盘" Style="{StaticResource ActiveSidebarBtnStyle}" Click="Nav_Click"/>
-                <Button x:Name="NavAccountsBtn" Content="账号管理" Style="{StaticResource SidebarBtnStyle}" Click="Nav_Click" Margin="0,4,0,0"/>
-                <Button x:Name="NavSettingsBtn" Content="系统设置" Style="{StaticResource SidebarBtnStyle}" Click="Nav_Click" Margin="0,4,0,0"/>
-            </StackPanel>
-
-            <!-- 底部服务状态指示 -->
-            <Border Grid.Row="2" BorderBrush="#EAEAEA" BorderThickness="0,1,0,0" Padding="20,0,0,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#0070F3" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="StatusTxt" Text="并发会话已激活(TermWrap)" FontSize="11" Foreground="#666666" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                <!-- 软件标题 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+                    <TextBlock Text="RDP Manager" FontSize="18" FontWeight="Bold" Foreground="#000000" VerticalAlignment="Center"/>
+                    <Border Background="#FAFAFA" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Margin="8,0,0,0" Padding="4,2,4,2">
+                        <TextBlock Text="RPA" FontSize="10" FontWeight="Bold" Foreground="#666666"/>
+                    </Border>
                 </StackPanel>
-            </Border>
-        </Grid>
+
+                <!-- 导航菜单 -->
+                <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                    <Button x:Name="NavDashboardBtn" Content="仪表盘" Style="{StaticResource ActiveSidebarBtnStyle}" Click="Nav_Click"/>
+                    <Button x:Name="NavAccountsBtn" Content="账号管理" Style="{StaticResource SidebarBtnStyle}" Click="Nav_Click" Margin="0,4,0,0"/>
+                    <Button x:Name="NavSettingsBtn" Content="系统设置" Style="{StaticResource SidebarBtnStyle}" Click="Nav_Click" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- 底部服务状态指示 -->
+                <Border Grid.Row="2" BorderBrush="#EAEAEA" BorderThickness="0,1,0,0" Padding="20,0,0,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#0070F3" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="StatusTxt" Text="并发会话已激活(TermWrap)" FontSize="11" Foreground="#666666" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
 
         <!-- ======================= 右侧主体内容 ======================= -->
         <Grid Grid.Column="1" Background="#FAF9F9">
@@ -194,27 +196,29 @@
                 </Grid.RowDefinitions>
 
                 <!-- 顶部标签栏 -->
-                <Grid Grid.Row="0" Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="0,0,0,1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Tab 页标题区域 -->
-                    <TabControl x:Name="WorkspaceTabs" Grid.Column="0" BorderThickness="0" Background="Transparent" 
-                                SelectionChanged="WorkspaceTabs_SelectionChanged">
-                        <TabControl.Resources>
-                            <!-- 隐藏 TabControl 的默认框与多余背景 -->
-                            <Style TargetType="TabPanel">
-                                <Setter Property="VerticalAlignment" Value="Bottom"/>
-                            </Style>
-                        </TabControl.Resources>
-                    </TabControl>
+                        <!-- Tab 页标题区域 -->
+                        <TabControl x:Name="WorkspaceTabs" Grid.Column="0" BorderThickness="0" Background="Transparent" 
+                                    SelectionChanged="WorkspaceTabs_SelectionChanged">
+                            <TabControl.Resources>
+                                <!-- 隐藏 TabControl 的默认框与多余背景 -->
+                                <Style TargetType="TabPanel">
+                                    <Setter Property="VerticalAlignment" Value="Bottom"/>
+                                </Style>
+                            </TabControl.Resources>
+                        </TabControl>
 
-                    <!-- 右侧 新建连接 按钮 -->
-                    <Button Grid.Column="1" Content="+ 新建连接" Style="{StaticResource VercelBlackButton}" 
-                            VerticalAlignment="Center" Margin="0,0,16,0" Click="OpenNewConnection_Click"/>
-                </Grid>
+                        <!-- 右侧 新建连接 按钮 -->
+                        <Button Grid.Column="1" Content="+ 新建连接" Style="{StaticResource VercelBlackButton}" 
+                                VerticalAlignment="Center" Margin="0,0,16,0" Click="OpenNewConnection_Click"/>
+                    </Grid>
+                </Border>
 
                 <!-- 会话主体显示区 -->
                 <Grid Grid.Row="1">
