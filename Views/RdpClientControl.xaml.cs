@@ -105,7 +105,11 @@ namespace rdpManager.Views
             advancedSettings5.RedirectSmartCards = false;
 
             // 音频优化：1 = 不在本地播放音频（完全静音运行，节省 CPU 开销）
-            advancedSettings.AudioRedirectionMode = 1;
+            if (_rdpControl.SecuredSettings != null)
+            {
+                var securedSettings = (IMsTscSecuredSettings)_rdpControl.SecuredSettings;
+                securedSettings.AudioRedirectionMode = 1;
+            }
 
             // 如果开启了外设重定向 (UmWrap 功能)
             if (enableUsb)
