@@ -45,9 +45,6 @@ namespace rdpManager
             // 检测 TermWrap 补丁状态
             RefreshTermWrapStatus();
 
-            // 加载本地账户列表
-            LoadAccounts();
-
             this.Loaded += MainWindow_Loaded;
         }
 
@@ -79,10 +76,40 @@ namespace rdpManager
             }
         }
 
-        private void LoadAccounts()
+        private async void LoadAccountsAsync()
         {
-            var accounts = AccountHelper.GetLocalAccounts();
-            AccountsDataGrid.ItemsSource = accounts;
+            ShowLoading("正在读取账户列表...");
+            try
+            {
+                var accounts = await System.Threading.Tasks.Task.Run(() => AccountHelper.GetLocalAccounts());
+                AccountsDataGrid.ItemsSource = accounts;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("加载本地账户列表失败", ex);
+                MessageBox.Show($"加载账户列表失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                HideLoading();
+            }
+        }
+
+        private void ShowLoading(string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadingText.Text = message;
+                GlobalLoadingOverlay.Visibility = Visibility.Visible;
+            });
+        }
+
+        private void HideLoading()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                GlobalLoadingOverlay.Visibility = Visibility.Collapsed;
+            });
         }
 
         // ======================= 侧边栏导航切换 =======================
@@ -101,7 +128,7 @@ namespace rdpManager
                 else if (clickedBtn == NavAccountsBtn)
                 {
                     SwitchToView(ViewAccounts);
-                    LoadAccounts();
+                    LoadAccountsAsync();
                 }
                 else if (clickedBtn == NavSettingsBtn)
                 {
@@ -323,14 +350,8 @@ namespace rdpManager
                     var closeBtn = new Button
                     {
                         Content = "×",
-                        FontSize = 14,
-                        FontWeight = FontWeights.Bold,
-                        Foreground = Brushes.Gray,
-                        Background = Brushes.Transparent,
-                        BorderThickness = new Thickness(0),
-                        Margin = new Thickness(8, 0, 0, 0),
-                        Padding = new Thickness(4, 0, 4, 0),
-                        Cursor = Cursors.Hand
+                        Style = (Style)FindResource("TabCloseButtonStyle"),
+                        Margin = new Thickness(8, 0, 0, 0)
                     };
                     closeBtn.Click += (s, ev) =>
                     {
@@ -382,7 +403,7 @@ namespace rdpManager
 
         // ======================= 新建连接弹窗 =======================
 
-        private void OpenNewConnection_Click(object sender, RoutedEventArgs e)
+        private async void OpenNewConnection_Click(object sender, RoutedEventArgs e)
         {
             TargetPasswordBox.Password = string.Empty;
             FriendlyNameTxt.Text = string.Empty;
@@ -390,11 +411,22 @@ namespace rdpManager
             TargetComputerCombo.Items.Clear();
             TargetComputerCombo.Items.Add("127.0.0.2");
 
-            // 读取已创建的隔离账户以便快速选择
-            var localAccounts = AccountHelper.GetLocalAccounts();
-            foreach (var acc in localAccounts)
+            ShowLoading("正在读取账户配置...");
+            try
             {
-                TargetComputerCombo.Items.Add(acc.Name);
+                var localAccounts = await System.Threading.Tasks.Task.Run(() => AccountHelper.GetLocalAccounts());
+                foreach (var acc in localAccounts)
+                {
+                    TargetComputerCombo.Items.Add(acc.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("读取本地账户列表失败", ex);
+            }
+            finally
+            {
+                HideLoading();
             }
 
             if (TargetComputerCombo.Items.Count > 0)
@@ -482,7 +514,7 @@ namespace rdpManager
 
         // ======================= 隔离账户管理 =======================
 
-        private void CreateAccount_Click(object sender, RoutedEventArgs e)
+        private async void CreateAccount_Click(object sender, RoutedEventArgs e)
         {
             string username = NewUserTxt.Text.Trim();
             string password = NewPassTxt.Password;
@@ -493,36 +525,91 @@ namespace rdpManager
                 return;
             }
 
-            if (AccountHelper.CreateRobotAccount(username, password, out string error))
+            ShowLoading($"正在创建隔离账号 '{username}'...");
+            bool success = false;
+            string error = string.Empty;
+
+            try
             {
-                // 创建成功后同时将密码注册至安全凭据
-                CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
-                MessageBox.Show($"隔离账号 '{username}' 已创建成功，自动完成管理员特权分配与环境首登优化！");
+                var result = await System.Threading.Tasks.Task.Run(() =>
+                {
+                    bool createResult = AccountHelper.CreateRobotAccount(username, password, out string err);
+                    if (createResult)
+                    {
+                        CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
+                    }
+                    return new { Success = createResult, Error = err };
+                });
+
+                success = result.Success;
+                error = result.Error;
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                error = ex.Message;
+                Logger.LogError($"创建隔离账号 '{username}' 出现未处理异常", ex);
+            }
+            finally
+            {
+                HideLoading();
+            }
+
+            if (success)
+            {
+                MessageBox.Show($"隔离账号 '{username}' 已创建成功，自动完成管理员特权分配与环境首登优化！", "创建成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 NewUserTxt.Text = string.Empty;
                 NewPassTxt.Password = string.Empty;
-                LoadAccounts();
+                LoadAccountsAsync();
             }
             else
             {
-                MessageBox.Show($"账户创建失败: {error}");
+                MessageBox.Show($"账户创建失败: {error}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private void DeleteAccount_Click(object sender, RoutedEventArgs e)
+        private async void DeleteAccount_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string username)
             {
                 var result = MessageBox.Show($"警告：您即将删除本地系统账户 '{username}'。删除后该账户所有会话、数据、桌面缓存均将被清空！是否继续？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Stop);
                 if (result == MessageBoxResult.Yes)
                 {
-                    if (AccountHelper.DeleteRobotAccount(username, out string error))
+                    ShowLoading($"正在删除账户 '{username}'...");
+                    bool success = false;
+                    string error = string.Empty;
+
+                    try
                     {
-                        MessageBox.Show($"账户 '{username}' 已成功删除。");
-                        LoadAccounts();
+                        var deleteResult = await System.Threading.Tasks.Task.Run(() =>
+                        {
+                            return AccountHelper.DeleteRobotAccount(username, out string err)
+                                ? new { Success = true, Error = string.Empty }
+                                : new { Success = false, Error = err };
+                        });
+
+                        success = deleteResult.Success;
+                        error = deleteResult.Error;
+                    }
+                    catch (Exception ex)
+                    {
+                        success = false;
+                        error = ex.Message;
+                        Logger.LogError($"删除账号 '{username}' 时出现异常", ex);
+                    }
+                    finally
+                    {
+                        HideLoading();
+                    }
+
+                    if (success)
+                    {
+                        MessageBox.Show($"账户 '{username}' 已成功删除。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        LoadAccountsAsync();
                     }
                     else
                     {
-                        MessageBox.Show($"删除失败: {error}");
+                        MessageBox.Show($"删除失败: {error}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
@@ -530,56 +617,93 @@ namespace rdpManager
 
         // ======================= 系统设置选项 =======================
 
-        private void DeployPatch_Click(object sender, RoutedEventArgs e)
+        private async void DeployPatch_Click(object sender, RoutedEventArgs e)
         {
             DeployPatchBtn.IsEnabled = false;
+            ShowLoading("正在部署 TermWrap 补丁，这可能需要几十秒并断开所有活跃的远程连接，请耐心等待...");
+            bool success = false;
+            string error = string.Empty;
+
             try
             {
-                if (TermWrapDeployer.DeployPatch(out string error))
+                var result = await System.Threading.Tasks.Task.Run(() =>
                 {
-                    MessageBox.Show("TermWrap 多路并发 RDP 补丁部署成功！\n系统已解除多路限制，外设摄像头重定向等底层策略已激活。", "激活成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show($"部署失败: {error}\n请确认已排除安全软件拦截，或重启电脑后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                    bool deployResult = TermWrapDeployer.DeployPatch(out string err);
+                    return new { Success = deployResult, Error = err };
+                });
+                success = result.Success;
+                error = result.Error;
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                error = ex.Message;
+                Logger.LogError("执行 DeployPatch 发生异常", ex);
             }
             finally
             {
+                HideLoading();
                 DeployPatchBtn.IsEnabled = true;
                 RefreshTermWrapStatus();
             }
+
+            if (success)
+            {
+                MessageBox.Show("TermWrap 多路并发 RDP 补丁部署成功！\n系统已解除多路限制，外设摄像头重定向等底层策略已激活。", "激活成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show($"部署失败: {error}\n请确认已排除安全软件拦截，或重启电脑后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void UninstallPatch_Click(object sender, RoutedEventArgs e)
+        private async void UninstallPatch_Click(object sender, RoutedEventArgs e)
         {
+            var result = MessageBox.Show("还原补丁将使 Windows 远程桌面多会话并发功能恢复为系统原始出厂配置。是否继续？", "确认还原", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes) return;
+
             UninstallPatchBtn.IsEnabled = false;
+            ShowLoading("正在还原系统默认配置，这可能会断开活跃的远程连接，请耐心等待...");
+            bool success = false;
+            string error = string.Empty;
+
             try
             {
-                var result = MessageBox.Show("还原补丁将使 Windows 远程桌面多会话并发功能恢复为系统原始出厂配置。是否继续？", "确认还原", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                if (result == MessageBoxResult.Yes)
+                var runResult = await System.Threading.Tasks.Task.Run(() =>
                 {
-                    if (TermWrapDeployer.UninstallPatch(out string error))
-                    {
-                        if (string.IsNullOrEmpty(error))
-                        {
-                            MessageBox.Show("TermWrap 补丁卸载成功，远程桌面控制服务已恢复出厂配置。", "卸载成功");
-                        }
-                        else
-                        {
-                            MessageBox.Show(error, "卸载提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show($"卸载失败: {error}", "还原错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
+                    bool uninstallResult = TermWrapDeployer.UninstallPatch(out string err);
+                    return new { Success = uninstallResult, Error = err };
+                });
+                success = runResult.Success;
+                error = runResult.Error;
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                error = ex.Message;
+                Logger.LogError("执行 UninstallPatch 发生异常", ex);
             }
             finally
             {
+                HideLoading();
                 UninstallPatchBtn.IsEnabled = true;
                 RefreshTermWrapStatus();
+            }
+
+            if (success)
+            {
+                if (string.IsNullOrEmpty(error))
+                {
+                    MessageBox.Show("TermWrap 补丁卸载成功，远程桌面控制服务已恢复出厂配置。", "卸载成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show(error, "卸载提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show($"卸载失败: {error}", "还原错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
