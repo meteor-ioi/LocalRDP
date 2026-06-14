@@ -14,9 +14,16 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        submodules: 'recursive' # 递归检出所有子模块
 
-    - name: Clone Zydis Submodule
-      run: git clone https://github.com/zyantific/zydis.git TermWrap/zydis
+    - name: Clone Zydis and Zycore Submodules
+      run: |
+        git submodule update --init --recursive
+        # 如果 zydis 不是作为官方 submodule 登记，我们强制拉取 zydis 和嵌套的 zycore
+        if (-not (Test-Path TermWrap/zydis/CMakeLists.txt)) {
+          git clone --recursive https://github.com/zyantific/zydis.git TermWrap/zydis
+        }
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
