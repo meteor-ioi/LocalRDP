@@ -59,7 +59,9 @@ jobs:
         }
         Write-Host "Found aximp.exe at: $aximp"
         New-Item -ItemType Directory -Force -Path Libs
-        & $aximp C:\Windows\System32\mstscax.dll /out:Libs\AxInterop.MSTSCLib.dll /rcw:Libs\Interop.MSTSCLib.dll
+        Push-Location Libs
+        & $aximp C:\Windows\System32\mstscax.dll
+        Pop-Location
 
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
