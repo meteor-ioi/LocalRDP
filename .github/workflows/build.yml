@@ -50,7 +50,11 @@ jobs:
 
     - name: Generate MSTSCLib ActiveX Interop Assemblies
       run: |
-        $aximp = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft SDKs\Windows" -Filter "aximp.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        # 优先寻找 x64 版本的 aximp.exe
+        $aximp = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft SDKs\Windows" -Filter "aximp.exe" -Recurse | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $aximp) {
+            $aximp = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft SDKs\Windows" -Filter "aximp.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        }
         if (-not $aximp) {
             $aximp = Get-ChildItem -Path "C:\Program Files" -Filter "aximp.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
         }
@@ -61,6 +65,11 @@ jobs:
         New-Item -ItemType Directory -Force -Path Libs
         Push-Location Libs
         & $aximp C:\Windows\System32\mstscax.dll
+        if ($LASTEXITCODE -ne 0) {
+            throw "aximp.exe failed with exit code $LASTEXITCODE"
+        }
+        Write-Host "Contents of Libs directory after aximp:"
+        Get-ChildItem -Path .
         Pop-Location
 
     - name: Setup .NET SDK
