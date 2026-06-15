@@ -60,6 +60,9 @@ namespace rdpManager.Views
         private int _pendingDesktopScaleFactor;
         private bool _connectPending = false;
 
+        private bool _isWaitingForSize = false;
+        private SizeChangedEventHandler? _sizeChangedHandler;
+
         public RdpClientControl()
         {
             InitializeComponent();
@@ -102,17 +105,12 @@ namespace rdpManager.Views
 
                 if (_connectPending)
                 {
-                    Logger.LogInfo("检测到有缓存的连接请求，立即执行连接。");
+                    Logger.LogInfo("检测到有缓存的连接请求，触发尺寸就绪判断以准备连接。");
                     _connectPending = false;
                     
-                    // 延迟到用户输入优先级执行连接——比 Loaded/Render 更低，确保 WPF 布局和渲染管道已完整结算 HWND 尺寸
-                    Dispatcher.InvokeAsync(() =>
-                    {
-                        Logger.LogInfo($"执行缓存的 RDP 连接请求: Host大小={RdpHost?.ActualWidth}x{RdpHost?.ActualHeight}");
-                        Connect(_pendingServer!, _pendingUsername!, _pendingPassword!, 
-                            _pendingEnableUsb, _pendingEnableSmartSizing, _pendingEnableClipboard, _pendingMuteAudio,
-                            _pendingDesktopWidth, _pendingDesktopHeight, _pendingDesktopScaleFactor);
-                    }, System.Windows.Threading.DispatcherPriority.Input);
+                    Connect(_pendingServer!, _pendingUsername!, _pendingPassword!, 
+                        _pendingEnableUsb, _pendingEnableSmartSizing, _pendingEnableClipboard, _pendingMuteAudio,
+                        _pendingDesktopWidth, _pendingDesktopHeight, _pendingDesktopScaleFactor);
                 }
             }
             catch (Exception ex)
@@ -131,112 +129,163 @@ namespace rdpManager.Views
             int desktopWidth = 0, int desktopHeight = 0, int desktopScaleFactor = 100)
         {
             Logger.LogInfo($"RdpClientControl.Connect() 被调用: Server={server}, Username={username}, EnableUsb={enableUsb}, EnableSmartSizing={enableSmartSizing}, EnableClipboard={enableClipboard}, MuteAudio={muteAudio}");
+            
+            // 缓存所有连接参数，供实际连接时读取
+            _pendingServer = server;
+            _pendingUsername = username;
+            _pendingPassword = password;
+            _pendingEnableUsb = enableUsb;
+            _pendingEnableSmartSizing = enableSmartSizing;
+            _pendingEnableClipboard = enableClipboard;
+            _pendingMuteAudio = muteAudio;
+            _pendingDesktopWidth = desktopWidth;
+            _pendingDesktopHeight = desktopHeight;
+            _pendingDesktopScaleFactor = desktopScaleFactor;
+
             if (_rdpControl == null)
             {
                 Logger.LogInfo("WinForms RDP 控件尚未完成 Load，缓存连接请求以待加载完成后执行。");
-                _pendingServer = server;
-                _pendingUsername = username;
-                _pendingPassword = password;
-                _pendingEnableUsb = enableUsb;
-                _pendingEnableSmartSizing = enableSmartSizing;
-                _pendingEnableClipboard = enableClipboard;
-                _pendingMuteAudio = muteAudio;
-                _pendingDesktopWidth = desktopWidth;
-                _pendingDesktopHeight = desktopHeight;
-                _pendingDesktopScaleFactor = desktopScaleFactor;
                 _connectPending = true;
                 return;
             }
 
-            ServerName = server;
-            UserName = username;
-            _password = password;
-
-            _rdpControl.Server = server;
-            _rdpControl.UserName = username;
-            
-            // 如果未指定分辨率，使用本机系统主屏幕分辨率作为远程桌面画布尺寸，配合 SmartSizing 适应控件
-            if (desktopWidth <= 0 || desktopHeight <= 0)
+            // 判断容器实际宽度和高度是否均大于 0，以防止以 0x0 分辨率向 ActiveX 控件发起连接导致异常断开
+            if (RdpHost.ActualWidth > 0 && RdpHost.ActualHeight > 0)
             {
-                desktopWidth = (int)SystemParameters.PrimaryScreenWidth;
-                desktopHeight = (int)SystemParameters.PrimaryScreenHeight;
+                Logger.LogInfo($"容器尺寸已就绪: {RdpHost.ActualWidth}x{RdpHost.ActualHeight}，直接执行连接。");
+                ExecutePendingConnect();
             }
-
-            _rdpControl.DesktopWidth = desktopWidth;
-            _rdpControl.DesktopHeight = desktopHeight;
-            
-            // 明确指定颜色深度为 32 位，解决部分系统默认低色深导致的黑屏问题
-            var rdpClient = _rdpControl.GetOcx() as IMsRdpClient;
-            if (rdpClient != null)
+            else
             {
-                rdpClient.ColorDepth = 32;
-            }
-
-            // 设置密码 (通过 COM 接口转换设置明文密码)
-            var advancedSettings = (IMsRdpClientAdvancedSettings)_rdpControl.AdvancedSettings;
-            advancedSettings.ClearTextPassword = password;
-
-            // 启用 CredSSP 支持 (避免本地环境因为 NLA 导致黑屏或闪退)
-            try
-            {
-                var advancedSettings7 = _rdpControl.AdvancedSettings as IMsRdpClientAdvancedSettings7;
-                if (advancedSettings7 != null)
+                if (!_isWaitingForSize)
                 {
-                    advancedSettings7.EnableCredSspSupport = true;
+                    Logger.LogInfo("容器尺寸尚未就绪 (0x0)，将等待 SizeChanged 事件触发后再执行连接。");
+                    _isWaitingForSize = true;
+                    _sizeChangedHandler = (s, args) =>
+                    {
+                        if (RdpHost.ActualWidth > 0 && RdpHost.ActualHeight > 0)
+                        {
+                            Logger.LogInfo($"容器尺寸已就绪 (通过 SizeChanged): {RdpHost.ActualWidth}x{RdpHost.ActualHeight}，开始执行连接。");
+                            _isWaitingForSize = false;
+                            RdpHost.SizeChanged -= _sizeChangedHandler;
+                            ExecutePendingConnect();
+                        }
+                    };
+                    RdpHost.SizeChanged += _sizeChangedHandler;
+                }
+                else
+                {
+                    Logger.LogInfo("已经在等待容器尺寸就绪的 SizeChanged 事件，仅更新连接参数。");
                 }
             }
-            catch { }
+        }
 
-            // RDP 基础优化配置
-            var advancedSettings5 = (IMsRdpClientAdvancedSettings5)_rdpControl.AdvancedSettings;
-            advancedSettings5.SmartSizing = enableSmartSizing;       // 分辨率自适应缩放
-            advancedSettings5.RedirectClipboard = enableClipboard; // 启用双向剪贴板
-            advancedSettings5.RedirectPrinters = false; // 禁用打印机重定向以优化速度
-            advancedSettings5.RedirectSmartCards = false;
-            advancedSettings5.BitmapPeristence = 0; // 禁用位图缓存，防止本地回环连接时缓存损坏导致黑屏
-            advancedSettings5.AuthenticationLevel = 0; // 跳过服务器证书验证（本地回环使用自签名证书，标准验证会导致连接静默挂起）
-
-            // 应用 DPI 缩放配置 (需要高级接口或动态绑定以兼容旧系统)
-            if (desktopScaleFactor > 100)
+        private void ExecutePendingConnect()
+        {
+            // 延迟到 Input 优先级执行，以确保 WPF 布局和 WinFormsHost 完全结算完成
+            Dispatcher.InvokeAsync(() =>
             {
+                Logger.LogInfo($"开始执行真实的 RDP 连接: Server={_pendingServer}, Host大小={RdpHost.ActualWidth}x{RdpHost.ActualHeight}");
+                
+                if (_rdpControl == null)
+                {
+                    Logger.LogWarning("ExecutePendingConnect 触发时 _rdpControl 为 null，已取消连接。");
+                    return;
+                }
+
+                ServerName = _pendingServer!;
+                UserName = _pendingUsername!;
+                _password = _pendingPassword!;
+
+                _rdpControl.Server = _pendingServer;
+                _rdpControl.UserName = _pendingUsername;
+                
+                int desktopWidth = _pendingDesktopWidth;
+                int desktopHeight = _pendingDesktopHeight;
+
+                // 如果未指定分辨率，使用本机系统主屏幕分辨率作为远程桌面画布尺寸，配合 SmartSizing 适应控件
+                if (desktopWidth <= 0 || desktopHeight <= 0)
+                {
+                    desktopWidth = (int)SystemParameters.PrimaryScreenWidth;
+                    desktopHeight = (int)SystemParameters.PrimaryScreenHeight;
+                }
+
+                _rdpControl.DesktopWidth = desktopWidth;
+                _rdpControl.DesktopHeight = desktopHeight;
+                
+                // 明确指定颜色深度为 32 位，解决部分系统默认低色深导致的黑屏问题
+                var rdpClient = _rdpControl.GetOcx() as IMsRdpClient;
+                if (rdpClient != null)
+                {
+                    rdpClient.ColorDepth = 32;
+                }
+
+                // 设置密码 (通过 COM 接口转换设置明文密码)
+                var advancedSettings = (IMsRdpClientAdvancedSettings)_rdpControl.AdvancedSettings;
+                advancedSettings.ClearTextPassword = _pendingPassword;
+
+                // 启用 CredSSP 支持 (避免本地环境因为 NLA 导致黑屏或闪退)
                 try
                 {
-                    dynamic advancedSettingsDynamic = _rdpControl.AdvancedSettings;
-                    advancedSettingsDynamic.DesktopScaleFactor = (uint)desktopScaleFactor;
-                    advancedSettingsDynamic.DeviceScaleFactor = 100u; // 通常设备缩放比为 100%，以保证界面元素不会过小
-                    Logger.LogInfo($"已注入 DPI 缩放比: {desktopScaleFactor}%");
+                    var advancedSettings7 = _rdpControl.AdvancedSettings as IMsRdpClientAdvancedSettings7;
+                    if (advancedSettings7 != null)
+                    {
+                        advancedSettings7.EnableCredSspSupport = true;
+                    }
+                }
+                catch { }
+
+                // RDP 基础优化配置
+                var advancedSettings5 = (IMsRdpClientAdvancedSettings5)_rdpControl.AdvancedSettings;
+                advancedSettings5.SmartSizing = _pendingEnableSmartSizing;       // 分辨率自适应缩放
+                advancedSettings5.RedirectClipboard = _pendingEnableClipboard; // 启用双向剪贴板
+                advancedSettings5.RedirectPrinters = false; // 禁用打印机重定向以优化速度
+                advancedSettings5.RedirectSmartCards = false;
+                advancedSettings5.BitmapPeristence = 0; // 禁用位图缓存，防止本地回环连接时缓存损坏导致黑屏
+                advancedSettings5.AuthenticationLevel = 0; // 跳过服务器证书验证（本地回环使用自签名证书，标准验证会导致连接静默挂起）
+
+                // 应用 DPI 缩放配置 (需要高级接口或动态绑定以兼容旧系统)
+                if (_pendingDesktopScaleFactor > 100)
+                {
+                    try
+                    {
+                        dynamic advancedSettingsDynamic = _rdpControl.AdvancedSettings;
+                        advancedSettingsDynamic.DesktopScaleFactor = (uint)_pendingDesktopScaleFactor;
+                        advancedSettingsDynamic.DeviceScaleFactor = 100u; // 通常设备缩放比为 100%，以保证界面元素不会过小
+                        Logger.LogInfo($"已注入 DPI 缩放比: {_pendingDesktopScaleFactor}%");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"当前 RDP 客户端版本不支持自定义缩放比，将忽略缩放设置: {ex.Message}");
+                    }
+                }
+
+                // 音频优化：1 = 不在本地播放音频（完全静音运行，节省 CPU 开销）
+                if (_rdpControl.SecuredSettings != null)
+                {
+                    var securedSettings = (IMsRdpClientSecuredSettings)_rdpControl.SecuredSettings;
+                    securedSettings.AudioRedirectionMode = _pendingMuteAudio ? 1 : 0;
+                }
+
+                // 如果开启了外设重定向 (UmWrap 功能)
+                if (_pendingEnableUsb)
+                {
+                    advancedSettings5.RedirectDevices = true; // 允许即插即用外设重定向（USB/摄像头）
+                }
+
+                try
+                {
+                    Logger.LogInfo($"调用 ActiveX 控件 Connect(): Server={_pendingServer}, ControlSize={_rdpControl.Width}x{_rdpControl.Height}, HandleCreated={_rdpControl.IsHandleCreated}");
+                    _rdpControl.Connect();
+                    // 连接发起后延迟强制刷新 HWND 确保初始帧渲染
+                    Dispatcher.InvokeAsync(ForceHwndRepaint, System.Windows.Threading.DispatcherPriority.Render);
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogWarning($"当前 RDP 客户端版本不支持自定义缩放比，将忽略缩放设置: {ex.Message}");
+                    Logger.LogError($"调用 Connect() 抛出异常: {ex.Message}", ex);
+                    OnRdpDisconnected?.Invoke(this, $"连接尝试失败: {ex.Message}");
                 }
-            }
-
-            // 音频优化：1 = 不在本地播放音频（完全静音运行，节省 CPU 开销）
-            if (_rdpControl.SecuredSettings != null)
-            {
-                var securedSettings = (IMsRdpClientSecuredSettings)_rdpControl.SecuredSettings;
-                securedSettings.AudioRedirectionMode = muteAudio ? 1 : 0;
-            }
-
-            // 如果开启了外设重定向 (UmWrap 功能)
-            if (enableUsb)
-            {
-                advancedSettings5.RedirectDevices = true; // 允许即插即用外设重定向（USB/摄像头）
-            }
-
-            try
-            {
-                Logger.LogInfo($"调用 ActiveX 控件 Connect(): Server={server}, ControlSize={_rdpControl.Width}x{_rdpControl.Height}, HandleCreated={_rdpControl.IsHandleCreated}");
-                _rdpControl.Connect();
-                // 连接发起后延迟强制刷新 HWND 确保初始帧渲染
-                Dispatcher.InvokeAsync(ForceHwndRepaint, System.Windows.Threading.DispatcherPriority.Render);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError($"调用 Connect() 抛出异常: {ex.Message}", ex);
-                OnRdpDisconnected?.Invoke(this, $"连接尝试失败: {ex.Message}");
-            }
+            }, System.Windows.Threading.DispatcherPriority.Input);
         }
 
         /// <summary>
@@ -244,6 +293,12 @@ namespace rdpManager.Views
         /// </summary>
         public void Disconnect()
         {
+            if (_isWaitingForSize && _sizeChangedHandler != null)
+            {
+                _isWaitingForSize = false;
+                RdpHost.SizeChanged -= _sizeChangedHandler;
+            }
+
             if (_rdpControl != null && IsConnected)
             {
                 try
