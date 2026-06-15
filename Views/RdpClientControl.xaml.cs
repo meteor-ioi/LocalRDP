@@ -162,7 +162,11 @@ namespace rdpManager.Views
             _rdpControl.DesktopHeight = desktopHeight;
             
             // 明确指定颜色深度为 32 位，解决部分系统默认低色深导致的黑屏问题
-            _rdpControl.ColorDepth = 32;
+            var rdpClient = _rdpControl.GetOcx() as IMsRdpClient;
+            if (rdpClient != null)
+            {
+                rdpClient.ColorDepth = 32;
+            }
 
             // 设置密码 (通过 COM 接口转换设置明文密码)
             var advancedSettings = (IMsRdpClientAdvancedSettings)_rdpControl.AdvancedSettings;
