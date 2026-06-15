@@ -30,16 +30,11 @@ namespace rdpManager.Views
                 _isHiddenSession = value;
                 if (_isHiddenSession)
                 {
-                    // 虚假断开：降低透明度为0，并禁用鼠标/键盘命中，物理移出可见区域以绕过 WinForms 遮罩问题，但保持在视觉树中继续渲染
-                    this.Opacity = 0;
-                    this.IsHitTestVisible = false;
-                    this.Margin = new System.Windows.Thickness(-10000, 0, 10000, 0);
+                    this.Visibility = Visibility.Collapsed;
                 }
                 else
                 {
-                    this.Opacity = 1;
-                    this.IsHitTestVisible = true;
-                    this.Margin = new System.Windows.Thickness(0);
+                    this.Visibility = Visibility.Visible;
 
                     // 强制 WPF 布局更新
                     RdpHost?.InvalidateVisual();
