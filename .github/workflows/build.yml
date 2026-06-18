@@ -20,8 +20,6 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
-      with:
-        submodules: 'recursive' # 递归检出所有子模块
 
     - name: Clone Zydis and Zycore Submodules
       run: |
