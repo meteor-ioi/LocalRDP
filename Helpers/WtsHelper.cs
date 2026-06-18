@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using rdpManager.Helpers;
 
@@ -19,9 +21,6 @@ namespace rdpManager.Helpers
         Down = 8,
         Init = 9
     }
-
-    using System.ComponentModel;
-    using System.Runtime.CompilerServices;
 
     public class WtsSessionInfo : INotifyPropertyChanged
     {
