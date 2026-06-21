@@ -245,13 +245,13 @@
                     </StackPanel>
 
                     <!-- 状态标签区 -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- 提权状态 -->
                         <Border x:Name="AdminTag" Background="#FEF2F2" CornerRadius="4" Padding="6,2,6,2">
                             <TextBlock x:Name="AdminTagTxt" Text="受限运行" FontSize="10" FontWeight="SemiBold" Foreground="#EF4444"/>
                         </Border>
                         <!-- RDP状态 -->
-                        <Border x:Name="RdpTag" Background="#F4F4F5" CornerRadius="4" Padding="6,2,6,2">
+                        <Border x:Name="RdpTag" Background="#F4F4F5" CornerRadius="4" Padding="6,2,6,2" Margin="6,0,0,0">
                             <TextBlock x:Name="RdpTagTxt" Text="RDP关" FontSize="10" FontWeight="SemiBold" Foreground="#71717A"/>
                         </Border>
                     </StackPanel>
@@ -478,9 +478,9 @@
                                                     </StackPanel>
                                                 </StackPanel>
                                                 <!-- 会话操作 -->
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Button Content="断连" Style="{StaticResource SecondaryBorderButton}" Width="46" Click="BtnDisconnectSession_Click" Tag="{Binding SessionId}"/>
-                                                    <Button Content="注销" Style="{StaticResource DangerBorderButton}" Width="46" Click="BtnLogoffSession_Click" Tag="{Binding SessionId}"/>
+                                                    <Button Content="注销" Style="{StaticResource DangerBorderButton}" Width="46" Click="BtnLogoffSession_Click" Tag="{Binding SessionId}" Margin="6,0,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
