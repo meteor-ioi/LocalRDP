@@ -368,9 +368,21 @@ namespace rdpManager.Helpers
                         // qwinsta 输出列顺序：NAME, USERNAME, ID, STATE, ...
                         // 当前行有 > 符号标记活跃会话（本机登录），部分行 NAME 列为空，ID 在不同位置
                         // 使用按固定宽度解析：ID 在 offset 19-22 区间
-                        if (line.Length >= 23)
+                        string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        int stateIndex = -1;
+                        for (int i = 0; i < tokens.Length; i++)
                         {
-                            string idStr = line.Substring(19, Math.Min(5, line.Length - 19)).Trim();
+                            if (tokens[i].Equals("Active", StringComparison.OrdinalIgnoreCase) || 
+                                tokens[i].Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                            {
+                                stateIndex = i;
+                                break;
+                            }
+                        }
+
+                        if (stateIndex >= 1)
+                        {
+                            string idStr = tokens[stateIndex - 1];
                             if (int.TryParse(idStr, out int sessionId) && sessionId > 0)
                             {
                                 Logger.LogInfo($"正在注销会话 ID={sessionId}...");

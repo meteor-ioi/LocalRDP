@@ -458,6 +458,80 @@ namespace rdpManager
             Logger.LogInfo($"正在删除账户 '{selected}'...");
             try
             {
+                var psi = new ProcessStartInfo("qwinsta")
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc != null)
+                    {
+                        string output = proc.StandardOutput.ReadToEnd();
+                        proc.WaitForExit(3000);
+                        foreach (string line in output.Split('\n'))
+                        {
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+                            if (!line.Contains("Active", StringComparison.OrdinalIgnoreCase) && 
+                                !line.Contains("Disc", StringComparison.OrdinalIgnoreCase))
+                                continue;
+                            
+                            string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            int stateIndex = -1;
+                            for (int i = 0; i < tokens.Length; i++)
+                            {
+                                if (tokens[i].Equals("Active", StringComparison.OrdinalIgnoreCase) || 
+                                    tokens[i].Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    stateIndex = i;
+                                    break;
+                                }
+                            }
+                            if (stateIndex >= 1)
+                            {
+                                string idStr = tokens[stateIndex - 1];
+                                if (int.TryParse(idStr, out int sessionId))
+                                {
+                                    string username = "";
+                                    if (stateIndex >= 2)
+                                    {
+                                        string candidate = tokens[stateIndex - 2];
+                                        if (!candidate.StartsWith("rdp-tcp", StringComparison.OrdinalIgnoreCase) && 
+                                            !candidate.StartsWith(">", StringComparison.OrdinalIgnoreCase) &&
+                                            !candidate.Equals("services", StringComparison.OrdinalIgnoreCase) &&
+                                            !candidate.Equals("console", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            username = candidate;
+                                        }
+                                    }
+                                    
+                                    if (username.Equals(selected, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        Logger.LogInfo($"检测到待删除用户 '{selected}' 存在会话 (SessionId={sessionId})，正在强制注销以释放锁定...");
+                                        var logoffPsi = new ProcessStartInfo("logoff", sessionId.ToString())
+                                        {
+                                            UseShellExecute = false,
+                                            CreateNoWindow = true
+                                        };
+                                        using (var logoffProc = Process.Start(logoffPsi))
+                                        {
+                                            logoffProc?.WaitForExit(3000);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"检测并清理用户会话时发生异常: {ex.Message}");
+            }
+
+            try
+            {
                 bool success = AccountHelper.DeleteRobotAccount(selected, out string err);
                 if (success)
                 {
@@ -539,28 +613,40 @@ namespace rdpManager
                             if (!isActive && !isDisc)
                                 continue;
 
-                            if (line.Length >= 23)
+                            string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            int stateIndex = -1;
+                            for (int i = 0; i < tokens.Length; i++)
                             {
-                                string idStr = line.Substring(19, Math.Min(5, line.Length - 19)).Trim();
+                                if (tokens[i].Equals("Active", StringComparison.OrdinalIgnoreCase) || 
+                                    tokens[i].Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    stateIndex = i;
+                                    break;
+                                }
+                            }
+
+                            if (stateIndex >= 1)
+                            {
+                                string idStr = tokens[stateIndex - 1];
                                 if (int.TryParse(idStr, out int sessionId))
                                 {
-                                    // 提取用户名
-                                    string userSection = line.Length > 35 ? line.Substring(10, 9).Trim() : "";
-                                    if (string.IsNullOrEmpty(userSection))
+                                    string username = "RDP回环会话";
+                                    if (stateIndex >= 2)
                                     {
-                                        // 尝试使用多空格分隔符解析
-                                        string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                                        if (tokens.Length > 1)
+                                        string candidate = tokens[stateIndex - 2];
+                                        if (!candidate.StartsWith("rdp-tcp", StringComparison.OrdinalIgnoreCase) && 
+                                            !candidate.StartsWith(">", StringComparison.OrdinalIgnoreCase) &&
+                                            !candidate.Equals("services", StringComparison.OrdinalIgnoreCase) &&
+                                            !candidate.Equals("console", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            userSection = tokens[0].StartsWith(">") ? tokens[1] : tokens[0];
-                                            if (int.TryParse(userSection, out _)) userSection = "RdpUser";
+                                            username = candidate;
                                         }
                                     }
 
                                     sessions.Add(new SessionItem
                                     {
                                         SessionId = sessionId,
-                                        Username = string.IsNullOrEmpty(userSection) ? "RDP回环会话" : userSection,
+                                        Username = username,
                                         StateText = isActive ? "🟢 活跃" : "🟡 断开",
                                         DurationText = "保活中"
                                     });

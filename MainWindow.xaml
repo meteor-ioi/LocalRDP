@@ -288,7 +288,7 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
-                            <Grid Width="380">
+                            <Grid Width="330">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -398,7 +398,7 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
-                            <Grid Width="380">
+                            <Grid Width="330">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -429,7 +429,7 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border BorderBrush="#F4F4F5" BorderThickness="0,0,0,1" Padding="0,6,0,6">
-                                            <Grid Width="380">
+                                            <Grid Width="330">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
@@ -467,16 +467,16 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="False">
                         <Expander.Header>
-                            <Grid Width="380">
+                            <Grid Width="330">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <Grid.ColumnDefinition Width="*"/>
+                                    <Grid.ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📝" FontSize="12" Margin="0,0,6,0"/>
                                     <TextBlock Text="物理运行日志" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="导出日志" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="11" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click"/>
+                                <Button Grid.Column="1" Content="📤" ToolTip="导出日志" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="12" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click"/>
                             </Grid>
                         </Expander.Header>
                         <TextBox x:Name="TxtLogOutput" Height="140" Style="{StaticResource ModernTextBox}" 
