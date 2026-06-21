@@ -363,9 +363,7 @@
                                                           <Button Content="打开" Style="{StaticResource VercelBlackButton}"
                                                                   Tag="{Binding Id}" Click="OpenSessionTab_Click" Margin="0,0,8,0"/>
                                                           <StackPanel Orientation="Horizontal" Visibility="{Binding ActiveActionsVisibility}">
-                                                              <Button Content="断开保活" Style="{StaticResource VercelBorderButton}" Margin="0,0,8,0"
-                                                                      Tag="{Binding Id}" Click="KeepAliveDisconnect_Click"/>
-                                                              <Button Content="彻底断开" Style="{StaticResource VercelBorderButton}" Margin="0,0,8,0"
+                                                              <Button Content="断开连接" Style="{StaticResource VercelBorderButton}" Margin="0,0,8,0"
                                                                       Foreground="#FF3366" BorderBrush="#FFCCD5"
                                                                       Tag="{Binding Id}" Click="FullDisconnect_Click"/>
                                                           </StackPanel>

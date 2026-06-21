@@ -56,8 +56,12 @@ namespace rdpManager
             SwitchToView(ViewWorkspaces);
             UpdateNavButtons(NavDashboardBtn);
 
-            // 后台异步预热本地账户列表缓存
-            _ = System.Threading.Tasks.Task.Run(() => AccountHelper.GetLocalAccounts(true));
+            // 后台异步预热本地账户列表缓存与应用凭据分配/免密登录系统组策略
+            _ = System.Threading.Tasks.Task.Run(() => 
+            {
+                AccountHelper.GetLocalAccounts(true);
+                TermWrapDeployer.ApplyCredentialsDelegationPolicies();
+            });
         }
 
         // ======================= 状态与数据加载 =======================
@@ -299,132 +303,105 @@ namespace rdpManager
                 var connItem = _connections.FirstOrDefault(c => c.Id == connId);
                 if (connItem == null) return;
 
-                Logger.LogInfo($"开始打开或切换至会话标签: FriendlyName={connItem.FriendlyName}");
+                Logger.LogInfo($"开始打开会话 (外部 mstsc): FriendlyName={connItem.FriendlyName}, Server={connItem.Server}");
 
-                // 切换回主视图
-                SwitchToView(ViewWorkspaces);
-                UpdateNavButtons(NavDashboardBtn);
-
-                // 检查是否已存在 Tab 页
-                TabItem? existingTab = null;
-                for (int i = 0; i < WorkspaceTabs.Items.Count; i++)
+                try
                 {
-                    if (WorkspaceTabs.Items[i] is TabItem t && t.Tag == connItem)
+                    Logger.LogInfo($"向 Windows 凭据管理器注入凭据: Server={connItem.Server}, Username={connItem.Username}");
+                    var cmdkeyPsi = new System.Diagnostics.ProcessStartInfo("cmdkey")
                     {
-                        existingTab = t;
-                        break;
-                    }
-                }
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        Arguments = $"/generic:TERMSRV/{connItem.Server} /user:{connItem.Username} /pass:\"{connItem.Password}\""
+                    };
 
-                if (existingTab != null)
-                {
-                    Logger.LogInfo("找到已存在的会话标签页，直接切换选中。");
-                    WorkspaceTabs.SelectedItem = existingTab;
-                }
-                else
-                {
-                    // 控件未初始化
-                    if (connItem.RdpControl == null)
+                    using (var proc = System.Diagnostics.Process.Start(cmdkeyPsi))
                     {
-                        Logger.LogInfo("新建 RdpClientControl 实例并加入视觉树。");
-                        var rdpCtrl = new RdpClientControl();
-                        connItem.RdpControl = rdpCtrl;
-
-                        // 将控件塞入常驻容器
-                        ActiveRdpContainer.Children.Add(rdpCtrl);
-
-                        connItem.StatusText = "正在连接...";
-                        connItem.StatusBrush = Brushes.Orange;
-
-                        // 绑定事件
-                        rdpCtrl.OnRdpConnected += (s, ev) =>
-                        {
-                            Logger.LogInfo($"收到 RdpClientControl.OnRdpConnected 连接成功回调: {connItem.FriendlyName}");
-                            Dispatcher.Invoke(() =>
-                            {
-                                connItem.StatusText = "已连接";
-                                connItem.StatusBrush = (Brush?)new BrushConverter().ConvertFromString("#0070F3") ?? Brushes.Blue;
-                                connItem.ActiveActionsVisibility = Visibility.Visible;
-                                connItem.PlaceholderVisibility = Visibility.Collapsed;
-                                connItem.Thumbnail = rdpCtrl.CaptureThumbnail();
-                            });
-                        };
-
-                        rdpCtrl.OnRdpDisconnected += (s, reason) =>
-                        {
-                            Logger.LogWarning($"收到 RdpClientControl.OnRdpDisconnected 连接断开回调: {connItem.FriendlyName}, 原因: {reason}");
-                            Dispatcher.Invoke(() =>
-                            {
-                                if (connItem.IsBeingDeleted)
-                                {
-                                    Logger.LogInfo($"检测到连接项 '{connItem.FriendlyName}' 正在被主动删除，静默跳过意外断开提示。");
-                                    return;
-                                }
-
-                                connItem.StatusText = "已断开";
-                                connItem.StatusBrush = Brushes.Red;
-                                connItem.ActiveActionsVisibility = Visibility.Collapsed;
-                                connItem.PlaceholderVisibility = Visibility.Visible;
-                                connItem.Thumbnail = null;
-
-                                if (connItem.RdpControl != null)
-                                {
-                                    ActiveRdpContainer.Children.Remove(connItem.RdpControl);
-                                    connItem.RdpControl = null;
-                                }
-
-                                TabItem? tabToRemove = null;
-                                for (int i = 0; i < WorkspaceTabs.Items.Count; i++)
-                                {
-                                    if (WorkspaceTabs.Items[i] is TabItem t && t.Tag == connItem)
-                                    {
-                                        tabToRemove = t;
-                                        break;
-                                    }
-                                }
-                                if (tabToRemove != null)
-                                {
-                                    WorkspaceTabs.Items.Remove(tabToRemove);
-                                }
-
-                                MessageBox.Show($"会话 '{connItem.FriendlyName}' 发生意外断开: {reason}", "会话断开", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            });
-                        };
-
-                        // 触发 RDP 连接
-                        bool enableUsb = OptUsbChk.IsChecked == true;
-                        bool enableSmartSizing = OptSmartSizingChk.IsChecked == true;
-                        bool enableClipboard = OptClipboardChk.IsChecked == true;
-                        bool muteAudio = OptMuteChk.IsChecked == true;
-                        rdpCtrl.Connect(connItem.Server, connItem.Username, connItem.Password, 
-                            enableUsb, enableSmartSizing, enableClipboard, muteAudio,
-                            connItem.DesktopWidth, connItem.DesktopHeight, connItem.DesktopScaleFactor);
+                        proc?.WaitForExit(3000);
                     }
 
-                    Logger.LogInfo("在 WorkspaceTabs 中创建并添加新的 TabItem 标签页。");
-                    // 新建 TabPage
-                    var newTab = new TabItem { Tag = connItem };
-
-                    // 自定义带关闭按钮的标签栏 Header
-                    var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
-                    headerPanel.Children.Add(new TextBlock { Text = connItem.FriendlyName, VerticalAlignment = VerticalAlignment.Center });
-
-                    var closeBtn = new Button
+                    Logger.LogInfo($"生成临时 RDP 配置文件并启动外部 mstsc.exe: Server={connItem.Server}, Username={connItem.Username}");
+                    
+                    // 生成临时 rdp 文件路径，使用 Guid 防止并发或重名冲突
+                    string tempRdpPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"rdp_{Guid.NewGuid():N}.rdp");
+                    
+                    var rdpContent = new System.Text.StringBuilder();
+                    rdpContent.AppendLine($"full address:s:{connItem.Server}");
+                    
+                    // 如果是本地账号且未指定域，可以加上 .\ 强制指定为目标机器的本地账户（可选）
+                    rdpContent.AppendLine($"username:s:{connItem.Username}");
+                    
+                    rdpContent.AppendLine("prompt for credentials:i:0"); // 自动使用已缓存凭据，不提示密码输入
+                    rdpContent.AppendLine("authentication level:i:0"); // 忽略证书警告 (本地 RPA/127.0.0.2 黄金组合)
+                    
+                    // 屏幕分辨率与模式配置
+                    // 注释掉强制指定 desktopscalefactor，以防 RDP 强制修改远程系统原本的缩放比 (解决影响其他远控如 RustDesk 的问题)
+                    // rdpContent.AppendLine($"desktopscalefactor:i:{connItem.DesktopScaleFactor}");
+                    
+                    if (connItem.DesktopWidth > 0 && connItem.DesktopHeight > 0)
                     {
-                        Content = "×",
-                        Style = (Style)FindResource("TabCloseButtonStyle"),
-                        Margin = new Thickness(8, 0, 0, 0)
-                    };
-                    closeBtn.Click += (s, ev) =>
+                        rdpContent.AppendLine("screen mode id:i:1"); // 窗口模式
+                        rdpContent.AppendLine($"desktopwidth:i:{connItem.DesktopWidth}");
+                        rdpContent.AppendLine($"desktopheight:i:{connItem.DesktopHeight}");
+                    }
+                    else
                     {
-                        ev.Handled = true;
-                        CloseTabToKeepAlive(connItem);
-                    };
-                    headerPanel.Children.Add(closeBtn);
+                        rdpContent.AppendLine("screen mode id:i:2"); // 全屏模式
+                    }
 
-                    newTab.Header = headerPanel;
-                    WorkspaceTabs.Items.Add(newTab);
-                    WorkspaceTabs.SelectedItem = newTab;
+                    // 引入选项首选项
+                    bool enableClipboard = OptClipboardChk.IsChecked == true;
+                    bool enableSmartSizing = OptSmartSizingChk.IsChecked == true;
+                    bool muteAudio = OptMuteChk.IsChecked == true;
+                    bool enableUsb = OptUsbChk.IsChecked == true;
+
+                    rdpContent.AppendLine($"redirectclipboard:i:{(enableClipboard ? 1 : 0)}");
+                    rdpContent.AppendLine($"smart sizing:i:{(enableSmartSizing ? 1 : 0)}");
+                    rdpContent.AppendLine("dynamic resolution:i:1"); // 允许窗口大小改变时，动态更新远程桌面分辨率
+                    rdpContent.AppendLine($"audiomode:i:{(muteAudio ? 2 : 0)}"); // 2 = 不要在本地播放音频 (降低系统负荷)
+                    rdpContent.AppendLine($"redirectdrives:i:{(enableUsb ? 1 : 0)}");
+                    rdpContent.AppendLine($"redirectsmartcards:i:{(enableUsb ? 1 : 0)}");
+                    rdpContent.AppendLine("redirectcomports:i:0");
+                    rdpContent.AppendLine("redirectprinters:i:0");
+
+                    // 写入临时文件
+                    System.IO.File.WriteAllText(tempRdpPath, rdpContent.ToString(), System.Text.Encoding.UTF8);
+
+                    var mstscPsi = new System.Diagnostics.ProcessStartInfo("mstsc.exe")
+                    {
+                        UseShellExecute = false,
+                        Arguments = $"\"{tempRdpPath}\""
+                    };
+                    System.Diagnostics.Process.Start(mstscPsi);
+
+                    // 后台异步定时清理临时 RDP 配置文件 (10秒延时非常安全)
+                    System.Threading.Tasks.Task.Run(async () =>
+                    {
+                        await System.Threading.Tasks.Task.Delay(10000);
+                        try
+                        {
+                            if (System.IO.File.Exists(tempRdpPath))
+                            {
+                                System.IO.File.Delete(tempRdpPath);
+                                Logger.LogInfo($"已自动清理临时 RDP 配置文件: {tempRdpPath}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning($"自动清理临时 RDP 配置文件失败: {ex.Message}");
+                        }
+                    });
+
+                    // 修改 UI 状态为已连接外部桌面
+                    connItem.StatusText = "已打开外部桌面";
+                    connItem.StatusBrush = (Brush?)new BrushConverter().ConvertFromString("#0070F3") ?? Brushes.Blue;
+                    connItem.ActiveActionsVisibility = Visibility.Visible;
+                    connItem.PlaceholderVisibility = Visibility.Visible;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("启动外部远程桌面连接失败", ex);
+                    MessageBox.Show($"启动远程桌面失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -447,11 +424,33 @@ namespace rdpManager
                 var connItem = _connections.FirstOrDefault(c => c.Id == connId);
                 if (connItem == null) return;
 
-                var result = MessageBox.Show($"是否确定彻底断开会话 '{connItem.FriendlyName}'？这将清理该隔离账户下的所有执行进程。", "断开连接", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                var result = MessageBox.Show($"是否确定关闭会话 '{connItem.FriendlyName}' 并清理系统凭据？", "断开并清理凭据", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (result == MessageBoxResult.Yes)
                 {
-                    Logger.LogInfo($"彻底注销会话并清理句柄: {connItem.FriendlyName}");
-                    connItem.RdpControl?.Disconnect();
+                    Logger.LogInfo($"清理会话 Windows 凭据并重置状态: {connItem.FriendlyName}");
+                    try
+                    {
+                        var cmdkeyPsi = new System.Diagnostics.ProcessStartInfo("cmdkey")
+                        {
+                            CreateNoWindow = true,
+                            UseShellExecute = false
+                        };
+                        cmdkeyPsi.ArgumentList.Add($"/delete:TERMSRV/{connItem.Server}");
+                        using (var proc = System.Diagnostics.Process.Start(cmdkeyPsi))
+                        {
+                            proc?.WaitForExit(3000);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"删除凭据失败: {ex.Message}");
+                    }
+
+                    connItem.StatusText = "已断开";
+                    connItem.StatusBrush = Brushes.Red;
+                    connItem.ActiveActionsVisibility = Visibility.Collapsed;
+                    connItem.PlaceholderVisibility = Visibility.Visible;
+                    connItem.Thumbnail = null;
                 }
             }
         }
@@ -994,6 +993,25 @@ namespace rdpManager
                 {
                     Logger.LogInfo($"开始主动删除连接设备: {connItem.FriendlyName}");
                     connItem.IsBeingDeleted = true;
+
+                    // 清理凭据
+                    try
+                    {
+                        var cmdkeyPsi = new System.Diagnostics.ProcessStartInfo("cmdkey")
+                        {
+                            CreateNoWindow = true,
+                            UseShellExecute = false
+                        };
+                        cmdkeyPsi.ArgumentList.Add($"/delete:TERMSRV/{connItem.Server}");
+                        using (var proc = System.Diagnostics.Process.Start(cmdkeyPsi))
+                        {
+                            proc?.WaitForExit(3000);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"删除被删除连接 '{connItem.FriendlyName}' 的凭据失败: {ex.Message}");
+                    }
 
                     // 1. 从 WorkspaceTabs 移除对应的 Tab
                     TabItem? tabToRemove = null;

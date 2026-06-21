@@ -407,10 +407,78 @@ namespace rdpManager.Helpers
                     key.SetValue("UseURCP", 0, RegistryValueKind.DWord);
                     Logger.LogInfo("已在注册表中禁用 RDP 客户端 URCP 协议以防止黑屏。");
                 }
+
+                // 配置凭据分配与免密登录系统组策略
+                ApplyCredentialsDelegationPolicies();
             }
             catch
             {
                 // 容错处理
+            }
+        }
+
+        /// <summary>
+        /// 配置组策略注册表，启用凭据分配（CredSSP/NTLM）以及禁用强制密码输入，以解决自动登录问题
+        /// </summary>
+        public static void ApplyCredentialsDelegationPolicies()
+        {
+            try
+            {
+                Logger.LogInfo("开始配置系统凭据分配策略，以实现自动免密登录...");
+
+                // 1. 允许分配保存的和默认的凭据
+                string credDelPath = @"SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation";
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(credDelPath, true))
+                {
+                    key.SetValue("AllowSavedCredentials", 1, RegistryValueKind.DWord);
+                    key.SetValue("AllowSavedCredentialsWhenNTLMOnly", 1, RegistryValueKind.DWord);
+                    key.SetValue("AllowDefCredentials", 1, RegistryValueKind.DWord);
+                    key.SetValue("AllowDefCredentialsWhenNTLMOnly", 1, RegistryValueKind.DWord);
+                }
+
+                // 2. 为这些策略注册 TERMSRV/* 目标 (允许分配到任何远程桌面服务)
+                string[] subKeys = new string[] {
+                    "AllowSavedCredentials",
+                    "AllowSavedCredentialsWhenNTLMOnly",
+                    "AllowDefCredentials",
+                    "AllowDefCredentialsWhenNTLMOnly"
+                };
+
+                foreach (var sub in subKeys)
+                {
+                    using (RegistryKey subKey = Registry.LocalMachine.CreateSubKey($@"{credDelPath}\{sub}", true))
+                    {
+                        subKey.SetValue("1", @"TERMSRV/*", RegistryValueKind.String);
+                    }
+                }
+
+                // 3. 禁用远程连接的“始终要求输入密码”限制 (组策略级别)
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services", true))
+                {
+                    key.SetValue("fPromptForPassword", 0, RegistryValueKind.DWord);
+                }
+
+                // 4. 禁用远程连接的“始终要求输入密码”限制 (本地会话配置级别)
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp", true))
+                {
+                    key.SetValue("fPromptForPassword", 0, RegistryValueKind.DWord);
+                }
+
+                // 5. 允许单用户进行多个并发会话 (关键优化：相同账号使用不同虚拟屏，互不干扰)
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server", true))
+                {
+                    key.SetValue("fSingleSessionPerUser", 0, RegistryValueKind.DWord);
+                }
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services", true))
+                {
+                    key.SetValue("fSingleSessionPerUser", 0, RegistryValueKind.DWord);
+                }
+
+                Logger.LogInfo("系统凭据分配策略、免密连接及单用户多会话组策略配置成功。");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"配置系统凭据分配与单用户多会话策略失败: {ex.Message}");
             }
         }
     }
