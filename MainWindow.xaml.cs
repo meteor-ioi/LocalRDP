@@ -54,7 +54,7 @@ namespace rdpManager
         private class RdpSessionProcess
         {
             public string Username { get; set; } = string.Empty;
-            public Process Process { get; set; }
+            public Process? Process { get; set; }
             public bool IsHidden { get; set; }
         }
 
@@ -161,7 +161,7 @@ namespace rdpManager
         {
             lock (_rdpProcesses)
             {
-                _rdpProcesses.RemoveAll(p => p.Process.HasExited);
+                _rdpProcesses.RemoveAll(p => p.Process == null || p.Process.HasExited);
 
                 var rdpProc = _rdpProcesses.FirstOrDefault(p => p.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
                 if (rdpProc == null)
@@ -179,7 +179,7 @@ namespace rdpManager
                     }
                 }
 
-                if (rdpProc != null && !rdpProc.Process.HasExited)
+                if (rdpProc != null && rdpProc.Process != null && !rdpProc.Process.HasExited)
                 {
                     var hwnds = GetWindowHandlesByPid(rdpProc.Process.Id);
                     if (hwnds.Count > 0)
@@ -206,7 +206,7 @@ namespace rdpManager
                 {
                     try
                     {
-                        if (!rdpProc.Process.HasExited)
+                        if (rdpProc.Process != null && !rdpProc.Process.HasExited)
                         {
                             rdpProc.Process.Kill();
                         }
@@ -919,7 +919,7 @@ namespace rdpManager
                         Process? mstscProc = null;
                         lock (_rdpProcesses)
                         {
-                            _rdpProcesses.RemoveAll(p => p.Process.HasExited);
+                            _rdpProcesses.RemoveAll(p => p.Process == null || p.Process.HasExited);
                             var match = _rdpProcesses.FirstOrDefault(p => p.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
                             if (match != null) mstscProc = match.Process;
                         }
