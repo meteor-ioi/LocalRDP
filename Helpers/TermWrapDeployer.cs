@@ -87,6 +87,21 @@ namespace rdpManager.Helpers
         {
             errorMessage = string.Empty;
             Logger.LogInfo("开始部署 TermWrap 补丁及音频保活补丁...");
+            
+            try
+            {
+                string termsrvPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "termsrv.dll");
+                if (File.Exists(termsrvPath))
+                {
+                    var versionInfo = FileVersionInfo.GetVersionInfo(termsrvPath);
+                    Logger.LogInfo($"系统 termsrv.dll 原始版本: {versionInfo.ProductVersion} ({versionInfo.FileVersion})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"读取 termsrv.dll 版本失败: {ex.Message}");
+            }
+
             try
             {
                 // 1. 创建 RDP Wrapper 文件夹
