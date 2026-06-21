@@ -6,7 +6,7 @@
 [Setup]
 AppId={{D1C2A5EA-8FB8-40DE-A558-DF21D0E39BC7}
 AppName={#MyAppName}
-AppVersion={#MyAppVersion}
+AppVersion={#AppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -15,7 +15,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=publish_setup
-OutputBaseFilename=LocalRDP-{#MyAppVersion}-Setup
+OutputBaseFilename=LocalRDP-{#AppVersion}-Setup
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes

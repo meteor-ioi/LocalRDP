@@ -120,6 +120,9 @@ jobs:
         if (Test-Path $iscc) {
             Write-Host "Running ISCC compilation..."
             & $iscc /DAppVersion=$version installer.iss
+            if ($LASTEXITCODE -ne 0) {
+                throw "ISCC compilation failed with exit code $LASTEXITCODE"
+            }
         } else {
             throw "ISCC compiler not found at $iscc"
         }
