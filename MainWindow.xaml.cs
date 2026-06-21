@@ -715,19 +715,46 @@ namespace rdpManager
                 {
                     if (keepResolution)
                     {
-                        // 1. 将会话重定向回物理控制台（确保物理显卡继续渲染）
-                        var tsconPsi = new ProcessStartInfo("tscon", $"{sessionId} /dest:console")
+                        // 1. 先正常断开会话，确保远程窗口关闭
+                        var tsdisconPsi = new ProcessStartInfo("tsdiscon", sessionId.ToString())
                         {
                             UseShellExecute = false,
                             CreateNoWindow = true
                         };
-                        using (var proc = Process.Start(tsconPsi))
+                        using (var proc = Process.Start(tsdisconPsi))
                         {
                             proc?.WaitForExit(3000);
                         }
-                        Logger.LogInfo($"已发送 RDP 会话 {sessionId} 重定向至 Console 指令。");
 
-                        // 2. 获取目标分辨率并执行 PowerShell 调整活动控制台分辨率
+                        // 尝试清理本地 mstsc 进程以避免弹窗
+                        try
+                        {
+                            var killMstscPsi = new ProcessStartInfo("powershell", "-NoProfile -WindowStyle Hidden -Command \"Get-WmiObject Win32_Process -Filter \\\"Name='mstsc.exe'\\\" | Where-Object { $_.CommandLine -match 'rdp_connection_' } | Stop-Process -Force\"")
+                            {
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
+                            Process.Start(killMstscPsi)?.WaitForExit(2000);
+                        }
+                        catch { }
+
+                        // 2. 将会话重定向回物理控制台（确保物理显卡继续渲染）
+                        // 注意：tscon 必须以 SYSTEM 权限运行才能免密码强制重定向
+                        string taskName = "RdpKeepAliveTask_" + Guid.NewGuid().ToString("N");
+                        string cmd = $"tscon {sessionId} /dest:console";
+                        
+                        var createPsi = new ProcessStartInfo("schtasks", $"/create /ru \"SYSTEM\" /sc once /st 00:00 /tn \"{taskName}\" /tr \"{cmd}\" /f") { CreateNoWindow = true, UseShellExecute = false };
+                        Process.Start(createPsi)?.WaitForExit(3000);
+
+                        var runPsi = new ProcessStartInfo("schtasks", $"/run /tn \"{taskName}\"") { CreateNoWindow = true, UseShellExecute = false };
+                        Process.Start(runPsi)?.WaitForExit(3000);
+
+                        var deletePsi = new ProcessStartInfo("schtasks", $"/delete /tn \"{taskName}\" /f") { CreateNoWindow = true, UseShellExecute = false };
+                        Process.Start(deletePsi)?.WaitForExit(3000);
+
+                        Logger.LogInfo($"已发送 RDP 会话 {sessionId} 重定向至 Console 指令 (SYSTEM 权限)。");
+
+                        // 3. 获取目标分辨率并执行 PowerShell 调整活动控制台分辨率
                         int width = 1920;
                         int height = 1080;
                         if (ComboResolution.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resTag)
