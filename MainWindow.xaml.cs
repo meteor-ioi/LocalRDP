@@ -26,6 +26,7 @@ namespace rdpManager
         // 系统托盘相关
         private System.Windows.Forms.NotifyIcon? _notifyIcon;
         private bool _isExplicitExit = false;
+        private bool _hasInitializedExpanderState = false;
 
         // 阻止睡眠 API
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
@@ -146,6 +147,13 @@ namespace rdpManager
                 EndpWrapStatusLabel.Text = "未安装";
                 EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
             }
+
+            if (!_hasInitializedExpanderState)
+            {
+                bool isInstalled = isTermWrapActive && isEndpWrapActive;
+                ExpanderPatchManager.IsExpanded = !isInstalled;
+                _hasInitializedExpanderState = true;
+            }
         }
 
         private async void BtnInstallPatch_Click(object sender, RoutedEventArgs e)
@@ -180,6 +188,7 @@ namespace rdpManager
 
             if (success)
             {
+                ExpanderPatchManager.IsExpanded = false;
                 MessageBox.Show("TermWrap 并发与音频保活补丁部署成功！\n系统多会话并发及 RDP 优化策略已完美激活。", "部署成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -223,6 +232,7 @@ namespace rdpManager
 
             if (success)
             {
+                ExpanderPatchManager.IsExpanded = true;
                 if (string.IsNullOrEmpty(error))
                 {
                     MessageBox.Show("补丁卸载成功，远程桌面已恢复到系统原始状态。", "还原成功", MessageBoxButton.OK, MessageBoxImage.Information);

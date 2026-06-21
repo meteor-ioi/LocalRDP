@@ -31,7 +31,7 @@
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <ContentPresenter Content="{Binding}" VerticalAlignment="Center" Margin="0,2"/>
+                        <ContentPresenter Content="{Binding}" VerticalAlignment="Center" Margin="0,2" HorizontalAlignment="Stretch"/>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
@@ -244,7 +244,7 @@
 
                 <!-- 1. 并发补丁管理 -->
                 <Border Style="{StaticResource CardBorderStyle}">
-                    <Expander Style="{StaticResource ModernExpander}" IsExpanded="True">
+                    <Expander x:Name="ExpanderPatchManager" Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🛡️" FontSize="12" Margin="0,0,6,0"/>
@@ -424,6 +424,7 @@
                                         <Setter Property="BorderThickness" Value="0"/>
                                         <Setter Property="Padding" Value="0,4"/>
                                         <Setter Property="Focusable" Value="False"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                     </Style>
                                 </ListBox.ItemContainerStyle>
                                 <ListBox.ItemTemplate>

@@ -257,11 +257,26 @@ namespace rdpManager.Helpers
                     }
                 }
 
-                // 3. 恢复服务类型为默认共享进程 (0x20)
+                // 3. 恢复服务类型为默认共享进程 (0x20) 并恢复拆分进程策略，同时确保服务未被禁用
                 using (RegistryKey? svcKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\TermService", true))
                 {
-                    svcKey?.SetValue("Type", 0x20, RegistryValueKind.DWord);
+                    if (svcKey != null)
+                    {
+                        svcKey.SetValue("Type", 0x20, RegistryValueKind.DWord);
+                        svcKey.DeleteValue("SvcHostSplitDisable", false);
+                        
+                        var startVal = svcKey.GetValue("Start");
+                        if (startVal != null && (int)startVal == 4)
+                        {
+                            svcKey.SetValue("Start", 3, RegistryValueKind.DWord);
+                            Logger.LogInfo("检测到 TermService 启动类型被禁用，已恢复为手动启动 (3)。");
+                        }
+                    }
                 }
+
+                // 给系统一定的缓冲时间，确保 SCM 完成注册表和进程句柄的清理与同步
+                Logger.LogInfo("等待系统同步服务配置...");
+                Thread.Sleep(1500);
 
                 // 4. 重新启动服务
                 ControlService("TermService", stop: false);
@@ -438,8 +453,30 @@ namespace rdpManager.Helpers
                 {
                     if (sc.Status != ServiceControllerStatus.Running && sc.Status != ServiceControllerStatus.StartPending)
                     {
-                        sc.Start();
-                        sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
+                        int retry = 3;
+                        while (retry > 0)
+                        {
+                            try
+                            {
+                                Logger.LogInfo($"正在尝试启动服务 {serviceName}...");
+                                sc.Start();
+                                sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(20));
+                                Logger.LogInfo($"服务 {serviceName} 启动成功。");
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                retry--;
+                                if (retry <= 0)
+                                {
+                                    Logger.LogError($"启动服务 {serviceName} 失败，已耗尽重试次数。", ex);
+                                    throw;
+                                }
+                                Logger.LogWarning($"启动服务 {serviceName} 遇到暂时性错误: {ex.Message}。将在 1.5 秒后重试 (剩余 {retry} 次)...");
+                                Thread.Sleep(1500);
+                                sc.Refresh();
+                            }
+                        }
                     }
                 }
             }
