@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="LocalRDP - 物理多并发保活工具" Height="820" Width="450"
+        Title="LocalRDP - 本地多用户虚拟桌面" Height="820" Width="450"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
         Background="#F4F4F5" BorderBrush="#E4E4E7" BorderThickness="0">
 
@@ -297,7 +297,7 @@
                                     <TextBlock Text="👤" FontSize="12" Margin="0,0,6,0"/>
                                     <TextBlock Text="系统账号设置" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="+ 新建用户" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="11" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click"/>
+                                <Button x:Name="BtnNewUser" Grid.Column="1" Content="+" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click"/>
                             </Grid>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
@@ -328,13 +328,13 @@
                     </Expander>
                 </Border>
 
-                <!-- 3. 高级保活及重定向 -->
+                <!-- 3. 重定向及保活 -->
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⚙️" FontSize="12" Margin="0,0,6,0"/>
-                                <TextBlock Text="高级保活及重定向" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                <TextBlock Text="重定向及保活" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                             </StackPanel>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
@@ -467,10 +467,17 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="False">
                         <Expander.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📝" FontSize="12" Margin="0,0,6,0"/>
-                                <TextBlock Text="物理运行日志" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
-                            </StackPanel>
+                            <Grid Width="380">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📝" FontSize="12" Margin="0,0,6,0"/>
+                                    <TextBlock Text="物理运行日志" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="导出日志" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="11" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click"/>
+                            </Grid>
                         </Expander.Header>
                         <TextBox x:Name="TxtLogOutput" Height="140" Style="{StaticResource ModernTextBox}" 
                                  Background="#18181B" Foreground="#A1A1AA" Margin="0,12,0,0"
@@ -509,14 +516,20 @@
                         <TextBox x:Name="NewUserPasswordTxt" Height="30" Style="{StaticResource ModernTextBox}"/>
                     </StackPanel>
                     
+                    <!-- 正在创建时的提示面板 -->
+                    <StackPanel x:Name="NewUserLoadingPanel" Visibility="Collapsed" Margin="0,0,0,16">
+                        <ProgressBar IsIndeterminate="True" Height="4" Background="#E4E4E7" Foreground="#09090B" BorderThickness="0"/>
+                        <TextBlock Text="正在配置组策略和分配隔离权限，请稍候..." FontSize="11" Foreground="#71717A" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="10"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button Content="取消" Style="{StaticResource SecondaryBorderButton}" Height="32" Click="BtnCancelNewUser_Click"/>
-                        <Button Content="确认创建" Grid.Column="2" Style="{StaticResource PrimaryBlackButton}" Height="32" Click="BtnConfirmCreateUser_Click"/>
+                        <Button x:Name="BtnCancelNewUser" Content="取消" Style="{StaticResource SecondaryBorderButton}" Height="32" Click="BtnCancelNewUser_Click"/>
+                        <Button x:Name="BtnConfirmCreateUser" Content="确认创建" Grid.Column="2" Style="{StaticResource PrimaryBlackButton}" Height="32" Click="BtnConfirmCreateUser_Click"/>
                     </Grid>
                 </StackPanel>
             </Border>

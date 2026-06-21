@@ -327,6 +327,7 @@ namespace rdpManager
 
         private void BtnNewUser_Click(object sender, RoutedEventArgs e)
         {
+            e.Handled = true; // 防止触发展开折叠
             NewUserUsernameTxt.Text = string.Empty;
             NewUserPasswordTxt.Text = string.Empty;
             NewUserModal.Visibility = Visibility.Visible;
@@ -342,7 +343,7 @@ namespace rdpManager
             NewUserPasswordTxt.Text = GenerateStrongPassword();
         }
 
-        private void BtnConfirmCreateUser_Click(object sender, RoutedEventArgs e)
+        private async void BtnConfirmCreateUser_Click(object sender, RoutedEventArgs e)
         {
             string username = NewUserUsernameTxt.Text.Trim();
             string password = NewUserPasswordTxt.Text;
@@ -353,29 +354,85 @@ namespace rdpManager
                 return;
             }
 
+            // 1. 切换至“创建中”状态，禁用控件，显示加载条
+            NewUserUsernameTxt.IsEnabled = false;
+            NewUserPasswordTxt.IsEnabled = false;
+            BtnCancelNewUser.IsEnabled = false;
+            BtnConfirmCreateUser.IsEnabled = false;
+            BtnConfirmCreateUser.Content = "创建中...";
+            NewUserLoadingPanel.Visibility = Visibility.Visible;
+
             Logger.LogInfo($"正在创建本地隔离账户 '{username}'...");
+            bool success = false;
+            string err = string.Empty;
+
             try
             {
-                bool success = AccountHelper.CreateRobotAccount(username, password, out string err);
-                if (success)
+                // 2. 异步执行耗时任务，保持 UI 线程流畅
+                success = await Task.Run(() => AccountHelper.CreateRobotAccount(username, password, out err));
+            }
+            catch (Exception ex)
+            {
+                err = ex.Message;
+                Logger.LogError("创建账号时出现未处理异常", ex);
+            }
+
+            // 3. 根据结果执行处理
+            if (success)
+            {
+                // 成功时立即关闭模态框
+                NewUserModal.Visibility = Visibility.Collapsed;
+
+                // 恢复控件状态以备下次使用
+                NewUserUsernameTxt.IsEnabled = true;
+                NewUserPasswordTxt.IsEnabled = true;
+                BtnCancelNewUser.IsEnabled = true;
+                BtnConfirmCreateUser.IsEnabled = true;
+                BtnConfirmCreateUser.Content = "确认创建";
+                NewUserLoadingPanel.Visibility = Visibility.Collapsed;
+
+                CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
+                Logger.LogInfo($"本地隔离账户 '{username}' 创建成功。");
+                MessageBox.Show($"账户 '{username}' 已创建成功，管理员特权及免密登录首登组策略已自动分配！", "创建成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LoadAccounts();
+                // 自动选择新建的用户
+                ComboAccounts.SelectedItem = username;
+            }
+            else
+            {
+                // 失败时保持模态框打开，恢复控件状态以便用户修改
+                NewUserUsernameTxt.IsEnabled = true;
+                NewUserPasswordTxt.IsEnabled = true;
+                BtnCancelNewUser.IsEnabled = true;
+                BtnConfirmCreateUser.IsEnabled = true;
+                BtnConfirmCreateUser.Content = "确认创建";
+                NewUserLoadingPanel.Visibility = Visibility.Collapsed;
+
+                MessageBox.Show($"创建失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnExportLog_Click(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true; // 防止触发展开折叠
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
                 {
-                    CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
-                    Logger.LogInfo($"本地隔离账户 '{username}' 创建成功。");
-                    MessageBox.Show($"账户 '{username}' 已创建成功，管理员特权及免密登录首登组策略已自动分配！", "创建成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                    NewUserModal.Visibility = Visibility.Collapsed;
-                    LoadAccounts();
-                    // 自动选择新建的用户
-                    ComboAccounts.SelectedItem = username;
-                }
-                else
+                    Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*",
+                    FileName = "LocalRDP_Log.txt",
+                    DefaultExt = ".txt"
+                };
+
+                if (dialog.ShowDialog() == true)
                 {
-                    MessageBox.Show($"创建失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    System.IO.File.WriteAllText(dialog.FileName, TxtLogOutput.Text);
+                    MessageBox.Show("日志已成功导出。", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError("创建账号时出现未处理异常", ex);
-                MessageBox.Show($"创建失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"导出日志失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -753,8 +810,27 @@ namespace rdpManager
             try
             {
                 _notifyIcon = new System.Windows.Forms.NotifyIcon();
-                _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
-                _notifyIcon.Text = "LocalRDP - 物理多并发保活工具";
+                
+                // 优先使用当前 EXE 嵌入的 icon.ico 图标
+                try
+                {
+                    string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
+                                     ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
+                    if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
+                    {
+                        _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+                    }
+                    else
+                    {
+                        _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+                    }
+                }
+                catch
+                {
+                    _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+                }
+
+                _notifyIcon.Text = "LocalRDP - 本地多用户虚拟桌面";
                 _notifyIcon.Visible = true;
                 _notifyIcon.DoubleClick += (s, args) => ShowMainWindow();
 
