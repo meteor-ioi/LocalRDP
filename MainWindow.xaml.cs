@@ -64,6 +64,9 @@ namespace rdpManager
             // 应用主机级阻止休眠策略
             ApplySleepPrevention();
 
+            // 在后台应用系统凭据分配和会话重连策略 (修复单用户多会话的遗留设置)
+            Task.Run(() => TermWrapDeployer.ApplyCredentialsDelegationPolicies());
+
             Logger.LogInfo("LocalRDP 界面初始化成功，已就绪。");
         }
 
@@ -831,7 +834,7 @@ namespace rdpManager
             Logger.LogInfo("正在构建临时 RDP 配置文件并调优连接参数...");
             try
             {
-                string tempRdpPath = Path.Combine(Path.GetTempPath(), $"rdp_{Guid.NewGuid():N}.rdp");
+                string tempRdpPath = Path.Combine(Path.GetTempPath(), $"rdp_connection_{username}.rdp");
                 var rdpContent = new System.Text.StringBuilder();
 
                 rdpContent.AppendLine($"full address:s:{server}");

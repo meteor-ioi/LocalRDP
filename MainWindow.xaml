@@ -288,7 +288,7 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
-                            <Grid Width="330">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -398,7 +398,7 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
-                            <Grid Width="330">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -429,7 +429,7 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border BorderBrush="#F4F4F5" BorderThickness="0,0,0,1" Padding="0,6,0,6">
-                                            <Grid Width="330">
+                                            <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
@@ -467,7 +467,7 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander Style="{StaticResource ModernExpander}" IsExpanded="False">
                         <Expander.Header>
-                            <Grid Width="330">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>

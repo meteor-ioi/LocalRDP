@@ -576,14 +576,14 @@ namespace rdpManager.Helpers
                     key.SetValue("fPromptForPassword", 0, RegistryValueKind.DWord);
                 }
 
-                // 5. 允许单用户进行多个并发会话 (关键优化：相同账号使用不同虚拟屏，互不干扰)
+                // 5. 启用单一会话限制 (关键修复：确保同一个账号在断开后能重连到原会话，而不是无限创建新会话)
                 using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server", true))
                 {
-                    key.SetValue("fSingleSessionPerUser", 0, RegistryValueKind.DWord);
+                    key.SetValue("fSingleSessionPerUser", 1, RegistryValueKind.DWord);
                 }
                 using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services", true))
                 {
-                    key.SetValue("fSingleSessionPerUser", 0, RegistryValueKind.DWord);
+                    key.SetValue("fSingleSessionPerUser", 1, RegistryValueKind.DWord);
                 }
 
                 Logger.LogInfo("系统凭据分配策略、免密连接及单用户多会话组策略配置成功。");
