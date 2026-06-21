@@ -10,6 +10,15 @@ namespace rdpManager
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            try
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"注册 CodePagesEncodingProvider 失败: {ex.Message}");
+            }
+
             base.OnStartup(e);
 
             // 初始化未捕获异常处理

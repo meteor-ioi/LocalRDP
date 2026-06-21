@@ -462,7 +462,8 @@ namespace rdpManager
                 {
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = System.Text.Encoding.GetEncoding(0)
                 };
                 using (var proc = Process.Start(psi))
                 {
@@ -473,16 +474,21 @@ namespace rdpManager
                         foreach (string line in output.Split('\n'))
                         {
                             if (string.IsNullOrWhiteSpace(line)) continue;
-                            if (!line.Contains("Active", StringComparison.OrdinalIgnoreCase) && 
-                                !line.Contains("Disc", StringComparison.OrdinalIgnoreCase))
+                            if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
                                 continue;
                             
-                            string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            // 替换 '>' 为空格，避免会话名与前缀粘连导致 tokens 错位
+                            string processedLine = line.Replace('>', ' ');
+
+                            string[] tokens = processedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                             int stateIndex = -1;
                             for (int i = 0; i < tokens.Length; i++)
                             {
-                                if (tokens[i].Equals("Active", StringComparison.OrdinalIgnoreCase) || 
-                                    tokens[i].Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                                string t = tokens[i];
+                                if (string.Equals(t, "Active", StringComparison.OrdinalIgnoreCase) || t == "运行中" ||
+                                    string.Equals(t, "Disc", StringComparison.OrdinalIgnoreCase) || 
+                                    string.Equals(t, "Disconnected", StringComparison.OrdinalIgnoreCase) || 
+                                    t == "断开")
                                 {
                                     stateIndex = i;
                                     break;
@@ -498,7 +504,6 @@ namespace rdpManager
                                     {
                                         string candidate = tokens[stateIndex - 2];
                                         if (!candidate.StartsWith("rdp-tcp", StringComparison.OrdinalIgnoreCase) && 
-                                            !candidate.StartsWith(">", StringComparison.OrdinalIgnoreCase) &&
                                             !candidate.Equals("services", StringComparison.OrdinalIgnoreCase) &&
                                             !candidate.Equals("console", StringComparison.OrdinalIgnoreCase))
                                         {
@@ -589,7 +594,8 @@ namespace rdpManager
                 {
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = System.Text.Encoding.GetEncoding(0)
                 };
 
                 using (var proc = Process.Start(psi))
@@ -601,26 +607,40 @@ namespace rdpManager
 
                         foreach (string line in output.Split('\n'))
                         {
-                            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("SESSIONNAME", StringComparison.OrdinalIgnoreCase))
+                            if (string.IsNullOrWhiteSpace(line))
                                 continue;
 
+                            // 过滤表头 (支持中英文)
+                            if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
+                                continue;
+
+                            // 过滤 console 和 services 核心会话名
                             if (line.Contains("console", StringComparison.OrdinalIgnoreCase) || line.Contains("services", StringComparison.OrdinalIgnoreCase))
                                 continue;
 
-                            bool isActive = line.Contains("Active", StringComparison.OrdinalIgnoreCase);
-                            bool isDisc = line.Contains("Disc", StringComparison.OrdinalIgnoreCase);
+                            // 替换 '>' 为空格，避免会话名与前缀粘连导致 tokens 错位
+                            string processedLine = line.Replace('>', ' ');
 
-                            if (!isActive && !isDisc)
-                                continue;
-
-                            string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            string[] tokens = processedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                             int stateIndex = -1;
+                            bool isActive = false;
+                            bool isDisc = false;
+
                             for (int i = 0; i < tokens.Length; i++)
                             {
-                                if (tokens[i].Equals("Active", StringComparison.OrdinalIgnoreCase) || 
-                                    tokens[i].Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                                string t = tokens[i];
+                                if (string.Equals(t, "Active", StringComparison.OrdinalIgnoreCase) || t == "运行中")
                                 {
                                     stateIndex = i;
+                                    isActive = true;
+                                    break;
+                                }
+                                else if (string.Equals(t, "Disc", StringComparison.OrdinalIgnoreCase) || 
+                                         string.Equals(t, "Disconnected", StringComparison.OrdinalIgnoreCase) || 
+                                         t == "断开")
+                                {
+                                    stateIndex = i;
+                                    isDisc = true;
                                     break;
                                 }
                             }
@@ -635,7 +655,6 @@ namespace rdpManager
                                     {
                                         string candidate = tokens[stateIndex - 2];
                                         if (!candidate.StartsWith("rdp-tcp", StringComparison.OrdinalIgnoreCase) && 
-                                            !candidate.StartsWith(">", StringComparison.OrdinalIgnoreCase) &&
                                             !candidate.Equals("services", StringComparison.OrdinalIgnoreCase) &&
                                             !candidate.Equals("console", StringComparison.OrdinalIgnoreCase))
                                         {

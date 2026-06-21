@@ -337,7 +337,8 @@ namespace rdpManager.Helpers
                 {
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = System.Text.Encoding.GetEncoding(0)
                 };
 
                 using (var proc = Process.Start(psi))
@@ -350,7 +351,10 @@ namespace rdpManager.Helpers
                     foreach (string line in output.Split('\n'))
                     {
                         // 跳过标题行和空行
-                        if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("SESSIONNAME", StringComparison.OrdinalIgnoreCase))
+                        if (string.IsNullOrWhiteSpace(line))
+                            continue;
+
+                        if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
                             continue;
 
                         // 跳过 console 和 services 会话（这两个是系统核心会话，不应注销）
@@ -358,22 +362,18 @@ namespace rdpManager.Helpers
                             line.Contains("services", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        // 只处理 Active 或 Disc 状态的会话
-                        if (!line.Contains("Active", StringComparison.OrdinalIgnoreCase) &&
-                            !line.Contains("Disc", StringComparison.OrdinalIgnoreCase))
-                            continue;
+                        // 替换 '>' 为空格，避免会话名与前缀粘连导致 tokens 错位
+                        string processedLine = line.Replace('>', ' ');
 
-                        // 提取会话 ID（第3列，固定宽度格式）
-                        string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        // qwinsta 输出列顺序：NAME, USERNAME, ID, STATE, ...
-                        // 当前行有 > 符号标记活跃会话（本机登录），部分行 NAME 列为空，ID 在不同位置
-                        // 使用按固定宽度解析：ID 在 offset 19-22 区间
-                        string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        string[] tokens = processedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                         int stateIndex = -1;
                         for (int i = 0; i < tokens.Length; i++)
                         {
-                            if (tokens[i].Equals("Active", StringComparison.OrdinalIgnoreCase) || 
-                                tokens[i].Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                            string t = tokens[i];
+                            if (string.Equals(t, "Active", StringComparison.OrdinalIgnoreCase) || t == "运行中" ||
+                                string.Equals(t, "Disc", StringComparison.OrdinalIgnoreCase) || 
+                                string.Equals(t, "Disconnected", StringComparison.OrdinalIgnoreCase) || 
+                                t == "断开")
                             {
                                 stateIndex = i;
                                 break;
