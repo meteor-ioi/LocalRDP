@@ -856,7 +856,6 @@ namespace rdpManager
                             string[] tokens = processedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                             int stateIndex = -1;
                             bool isActive = false;
-                            bool isDisc = false;
 
                             for (int i = 0; i < tokens.Length; i++)
                             {
@@ -872,7 +871,6 @@ namespace rdpManager
                                          t == "断开")
                                 {
                                     stateIndex = i;
-                                    isDisc = true;
                                     break;
                                 }
                             }
