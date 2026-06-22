@@ -93,21 +93,44 @@ namespace rdpManager.Helpers
             return false;
         }
 
-        public static void ApplyTheme()
+        
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+        public static void ApplyTitleBarTheme(Window window, bool isDark)
         {
-            bool useDark = false;
+            try
+            {
+                var hwnd = new WindowInteropHelper(window).Handle;
+                if (hwnd == IntPtr.Zero) return;
+                
+                int useImmersiveDarkMode = isDark ? 1 : 0;
+                int hr = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useImmersiveDarkMode, sizeof(int));
+                if (hr != 0)
+                {
+                    DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref useImmersiveDarkMode, sizeof(int));
+                }
+            }
+            catch { }
+        }
+
+        public static bool IsDarkTheme()
+        {
             switch (CurrentMode)
             {
-                case ThemeMode.System:
-                    useDark = IsSystemDark();
-                    break;
-                case ThemeMode.Dark:
-                    useDark = true;
-                    break;
-                case ThemeMode.Light:
-                    useDark = false;
-                    break;
+                case ThemeMode.System: return IsSystemDark();
+                case ThemeMode.Dark: return true;
+                case ThemeMode.Light: return false;
             }
+            return false;
+        }
+
+        public static void ApplyTheme()
+        {
+            bool useDark = IsDarkTheme();
 
             string themeName = useDark ? "Dark.xaml" : "Light.xaml";
             var uri = new Uri($"pack://application:,,,/Themes/{themeName}", UriKind.Absolute);
@@ -125,6 +148,11 @@ namespace rdpManager.Helpers
                 else
                 {
                     appDicts.Add(dict);
+                }
+                
+                if (Application.Current.MainWindow != null)
+                {
+                    ApplyTitleBarTheme(Application.Current.MainWindow, useDark);
                 }
             });
         }

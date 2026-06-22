@@ -4,7 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="LocalRDP - 多用户虚拟桌面" Height="820" Width="450"
+        Title="LocalRDP - 多用户虚拟桌面"
+        Foreground="{DynamicResource TextPrimaryBrush}" Height="820" Width="450"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
         Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource WindowBackgroundBrush}" BorderThickness="0">
 
@@ -710,10 +711,10 @@
                                                 <!-- 会话信息 -->
                                                 <StackPanel Grid.Column="0">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="会话 " FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
-                                                        <TextBlock Text="{Binding SessionId}" FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
-                                                        <TextBlock Text=" : " FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
-                                                        <TextBlock Text="{Binding Username}" FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
+                                                        <TextBlock Text="会话 " FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding SessionId}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text=" : " FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding Username}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                         <TextBlock x:Name="TxtCurrentUserCrown" Text=" 👑" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" Visibility="Collapsed"/>
                                                     </StackPanel>
                                                     
