@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="LocalRDP - 多用户虚拟桌面"
+        Title="多用户虚拟桌面"
         Foreground="{DynamicResource TextPrimaryBrush}" Height="820" Width="450"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
         Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource WindowBackgroundBrush}" BorderThickness="0">
@@ -28,12 +28,12 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Expander">
                         <DockPanel>
-                            <ToggleButton x:Name="HeaderSite" ContentTemplate="{TemplateBinding HeaderTemplate}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" Content="{TemplateBinding Header}" DockPanel.Dock="Top" IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Margin="0" MinHeight="0" MinWidth="0" Padding="0">
+                            <ToggleButton x:Name="HeaderSite" HorizontalContentAlignment="Stretch" ContentTemplate="{TemplateBinding HeaderTemplate}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" Content="{TemplateBinding Header}" DockPanel.Dock="Top" IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Margin="0" MinHeight="0" MinWidth="0" Padding="0">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border Background="Transparent" Padding="0,2">
@@ -485,13 +485,13 @@
                             <Grid HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="38"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                                     <TextBlock Text="🛡️" FontSize="12" Margin="0,0,6,0"/>
                                     <TextBlock Text="并发补丁管理" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextHeadingBrush}"/>
                                 </StackPanel>
-                                <TextBlock x:Name="PatchSuccessIcon" Grid.Column="1" Text="✅" FontSize="12" Margin="0,0,8,0" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PatchSuccessIcon" Grid.Column="1" Text="☑️" FontSize="12" Margin="0" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                             </Grid>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
