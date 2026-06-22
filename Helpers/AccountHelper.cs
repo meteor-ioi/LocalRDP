@@ -159,9 +159,8 @@ namespace rdpManager.Helpers
                         {
                             string name = child.Name;
 
-                            // 过滤系统内置账户
-                            if (name.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||
-                                name.Equals("Guest", StringComparison.OrdinalIgnoreCase) ||
+                            // 过滤系统内置账户 (保留 Administrator，因为它是一个极常用的活跃账户且可能是当前登录用户)
+                            if (name.Equals("Guest", StringComparison.OrdinalIgnoreCase) ||
                                 name.Equals("DefaultAccount", StringComparison.OrdinalIgnoreCase) ||
                                 name.Equals("WDAGUtilityAccount", StringComparison.OrdinalIgnoreCase) ||
                                 name.Equals("UtilityVM", StringComparison.OrdinalIgnoreCase))
