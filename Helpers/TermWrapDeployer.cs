@@ -61,6 +61,37 @@ namespace rdpManager.Helpers
         }
 
         /// <summary>
+        /// 检查特征码降级 (rdpwrap) 是否已激活
+        /// </summary>
+        public static bool IsRdpWrapActive()
+        {
+            try
+            {
+                using (RegistryKey? key = Registry.LocalMachine.OpenSubKey(TERM_SERVICE_REG_PATH))
+                {
+                    if (key != null)
+                    {
+                        string? serviceDll = key.GetValue("ServiceDll") as string;
+                        string rdpWrapDll = RDP_WRAPPER_DIR + @"\rdpwrap.dll";
+                        if (!string.Equals(serviceDll, rdpWrapDll, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 检查音频保活 EndpWrap 是否已激活（即 AudioEnumeratorDll 是否已替换为 EndpWrap.dll）
         /// </summary>
         public static bool IsEndpWrapActive()

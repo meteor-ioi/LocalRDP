@@ -320,15 +320,31 @@ namespace rdpManager
 
             // 3. 判断补丁激活状态
             bool isTermWrapActive = TermWrapDeployer.IsMultiSessionActive();
+            bool isRdpWrapActive = TermWrapDeployer.IsRdpWrapActive();
+
             if (isTermWrapActive)
             {
                 TermWrapStatusLabel.Text = "已启用";
                 TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                RdpWrapStatusLabel.Text = "未安装";
+                RdpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#A1A1AA")!;
             }
             else
             {
-                TermWrapStatusLabel.Text = "未安装";
-                TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                if (isRdpWrapActive)
+                {
+                    TermWrapStatusLabel.Text = "未安装";
+                    TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#A1A1AA")!;
+                    RdpWrapStatusLabel.Text = "已启用";
+                    RdpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                }
+                else
+                {
+                    TermWrapStatusLabel.Text = "未安装";
+                    TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                    RdpWrapStatusLabel.Text = "未安装";
+                    RdpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                }
             }
 
             bool isEndpWrapActive;
@@ -353,7 +369,8 @@ namespace rdpManager
                 }
             }
 
-            bool isInstalled = isTermWrapActive && isEndpWrapActive;
+            bool isInstalled = (isTermWrapActive || isRdpWrapActive) && isEndpWrapActive;
+            PatchSuccessIcon.Visibility = isInstalled ? Visibility.Visible : Visibility.Collapsed;
 
             if (!_hasInitializedExpanderState)
             {

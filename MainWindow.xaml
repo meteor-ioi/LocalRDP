@@ -477,6 +477,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🛡️" FontSize="12" Margin="0,0,6,0"/>
                                 <TextBlock Text="并发补丁管理" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                <TextBlock x:Name="PatchSuccessIcon" Text="✅" FontSize="12" Margin="6,0,0,0" Visibility="Collapsed"/>
                             </StackPanel>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
@@ -495,6 +496,15 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="并发组件 (TermWrap)" FontSize="12" Foreground="#71717A" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="TermWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"/>
+                            </Grid>
+                            <!-- RdpWrap 状态 -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="降级组件 (RdpWrap)" FontSize="12" Foreground="#71717A" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="RdpWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"/>
                             </Grid>
                             <!-- EndpWrap 状态 -->
                             <Grid Margin="0,0,0,14">
@@ -530,7 +540,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="👤" FontSize="12" Margin="0,0,6,0"/>
-                                <TextBlock Text="连接设置" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                <TextBlock Text="账号连接设置" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                             </StackPanel>
                             <Button x:Name="BtnNewUser" Grid.Column="1" Content="+" Foreground="#3F3F46" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click" Width="30" HorizontalAlignment="Right"/>
                         </Grid>
@@ -626,7 +636,7 @@
                             </Border>
 
                             <!-- 远程环境保活锁定 -->
-                            <Border Background="#FAFAFA" BorderBrush="#F4F4F5" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <Border Background="#FAFAFA" BorderBrush="#F4F4F5" BorderThickness="1" CornerRadius="4" Padding="10" Visibility="Collapsed">
                                 <StackPanel>
                                     <TextBlock Text="远程环境保活锁定" FontSize="11" FontWeight="Bold" Foreground="#71717A" Margin="0,0,0,8"/>
                                     <CheckBox x:Name="ChkKeepResolution" Content="锁定强制恢复显卡分辨率" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
@@ -714,7 +724,7 @@
                                                 
                                                 <!-- Console 会话操作，默认隐藏 -->
                                                 <StackPanel x:Name="PanelConsoleActions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-                                                    <Button Content="⊕ 再开一个" Style="{StaticResource SecondaryBorderButton}" Width="70" Click="BtnAddVirtualScreen_Click" Tag="{Binding Username}"/>
+                                                    <Button Content="+ 虚拟屏" Style="{StaticResource SecondaryBorderButton}" Width="70" Click="BtnAddVirtualScreen_Click" Tag="{Binding Username}"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
