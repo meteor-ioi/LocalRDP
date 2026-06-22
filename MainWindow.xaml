@@ -550,8 +550,8 @@
                             <!-- 密码输入与眼睛显隐 -->
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
-                                    <Grid.ColumnDefinition Width="*"/>
-                                    <Grid.ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <PasswordBox x:Name="AccountPasswordBox" Style="{StaticResource ModernPasswordBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" PasswordChanged="AccountPasswordBox_PasswordChanged"/>
