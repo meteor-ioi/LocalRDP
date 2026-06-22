@@ -27,9 +27,31 @@ namespace rdpManager.Helpers
                     if (key != null)
                     {
                         string? serviceDll = key.GetValue("ServiceDll") as string;
-                        return string.Equals(serviceDll, PATCHED_SERVICE_DLL, StringComparison.OrdinalIgnoreCase);
+                        if (!string.Equals(serviceDll, PATCHED_SERVICE_DLL, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
                     }
                 }
+
+                // 防御性检查：确保劫持文件存在且大小不为 0 字节
+                if (!File.Exists(PATCHED_SERVICE_DLL) || new FileInfo(PATCHED_SERVICE_DLL).Length == 0)
+                {
+                    return false;
+                }
+
+                // 防御性检查：确保依赖的 Zydis.dll 存在且不为 0 字节
+                string zydisPath = Path.Combine(RDP_WRAPPER_DIR, "Zydis.dll");
+                if (!File.Exists(zydisPath) || new FileInfo(zydisPath).Length == 0)
+                {
+                    return false;
+                }
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -50,9 +72,28 @@ namespace rdpManager.Helpers
                     if (key != null)
                     {
                         string? audioDll = key.GetValue("AudioEnumeratorDll") as string;
-                        return string.Equals(audioDll, "EndpWrap.dll", StringComparison.OrdinalIgnoreCase);
+                        if (!string.Equals(audioDll, "EndpWrap.dll", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
                     }
                 }
+
+                // 防御性检查：仅在 64 位系统上验证 EndpWrap.dll 本地文件存在且不为 0 字节
+                if (Environment.Is64BitOperatingSystem)
+                {
+                    string endpPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "EndpWrap.dll");
+                    if (!File.Exists(endpPath) || new FileInfo(endpPath).Length == 0)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
             catch (Exception ex)
             {
