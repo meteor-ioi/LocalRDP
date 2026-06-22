@@ -1388,6 +1388,17 @@ namespace rdpManager
                             IsHidden = false
                         });
                     }
+
+                    // 保存手动输入的密码到本地凭据
+                    try
+                    {
+                        CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
+                        Logger.LogInfo($"已将用户 '{username}' 的密码自动保存至本地缓存凭证。");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"自动保存用户凭据失败: {ex.Message}");
+                    }
                 }
 
                 // 延迟 10 秒清理临时 RDP 配置文件

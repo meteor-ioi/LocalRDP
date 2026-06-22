@@ -17,7 +17,7 @@
     <SolidColorBrush x:Key="TextHeadingBrush" Color="#EDEDED"/>
     <SolidColorBrush x:Key="TextContentBrush" Color="#A1A1AA"/>
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#888888"/>
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#666666"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#888888"/>
 
     <!-- Icons -->
     <SolidColorBrush x:Key="IconFillBrush" Color="#888888"/>
@@ -81,6 +81,6 @@
     <!-- Status Labels -->
     <SolidColorBrush x:Key="StatusSuccessTextBrush" Color="#34D399"/>
     <SolidColorBrush x:Key="StatusErrorTextBrush" Color="#F87171"/>
-    <SolidColorBrush x:Key="StatusDisabledTextBrush" Color="#666666"/>
+    <SolidColorBrush x:Key="StatusDisabledTextBrush" Color="#888888"/>
 
 </ResourceDictionary>
