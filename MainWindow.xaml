@@ -849,7 +849,7 @@
         <!-- ======================= 全局新建用户模态框 ======================= -->
         <Grid x:Name="NewUserModal" Grid.RowSpan="2" Background="#80000000" Visibility="Collapsed">
             <Border Width="340" HorizontalAlignment="Center" VerticalAlignment="Center" 
-                    Background="#FFFFFF" BorderBrush="#E4E4E7" BorderThickness="1" CornerRadius="8" Padding="20">
+                    Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
                 <StackPanel>
                     <TextBlock Text="新建本地隔离账户" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
                     
