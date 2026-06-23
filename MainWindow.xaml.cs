@@ -325,8 +325,7 @@ namespace rdpManager
             });
         }
 
-        private readonly DispatcherTimer _refreshTimer;
-        private readonly DispatcherTimer _durationTimer;
+        private DispatcherTimer _durationTimer;
 
         private void RefreshTimer_Tick(object? sender, EventArgs e)
         {
