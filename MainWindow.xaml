@@ -484,11 +484,8 @@
                     <!-- 状态标签区 -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- 保活锁屏 -->
-                        <Button x:Name="BtnFakeLockScreen" Style="{StaticResource SecondaryBorderButton}" Height="24" Padding="8,0" Margin="0,0,8,0" Click="BtnFakeLockScreen_Click" ToolTip="开启防窥锁屏（保持后台环境活跃渲染）">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🔒" FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="保活锁屏" FontSize="10" VerticalAlignment="Center"/>
-                            </StackPanel>
+                        <Button x:Name="BtnFakeLockScreen" Style="{StaticResource SecondaryBorderButton}" Width="28" Height="24" Margin="0,0,8,0" Click="BtnFakeLockScreen_Click" ToolTip="开启防窥锁屏（保持后台环境活跃渲染）">
+                            <TextBlock Text="🔒" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         </Button>
 
                         <!-- 主题切换 -->
