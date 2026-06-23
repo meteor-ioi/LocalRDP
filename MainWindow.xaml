@@ -489,12 +489,12 @@
                         </Button>
                         
                         <!-- 提权状态 -->
-                        <Border x:Name="AdminTag" Background="{DynamicResource BadgeDangerBgBrush}" CornerRadius="4" Padding="6,2,6,2">
-                            <TextBlock x:Name="AdminTagTxt" Text="受限运行" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BadgeDangerTextBrush}"/>
+                        <Border x:Name="AdminTag" Background="{DynamicResource BadgeDangerBgBrush}" CornerRadius="4" Padding="6,2,6,2" VerticalAlignment="Center">
+                            <TextBlock x:Name="AdminTagTxt" Text="受限运行" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BadgeDangerTextBrush}" VerticalAlignment="Center"/>
                         </Border>
                         <!-- RDP状态 -->
-                        <Border x:Name="RdpTag" Background="{DynamicResource BadgeDisabledBgBrush}" CornerRadius="4" Padding="6,2,6,2" Margin="6,0,0,0">
-                            <TextBlock x:Name="RdpTagTxt" Text="RDP关" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <Border x:Name="RdpTag" Background="{DynamicResource BadgeDisabledBgBrush}" CornerRadius="4" Padding="6,2,6,2" Margin="6,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="RdpTagTxt" Text="RDP关" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </Border>
                     </StackPanel>
                 </Grid>

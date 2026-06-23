@@ -250,6 +250,17 @@ namespace rdpManager
             InitializeComponent();
             UpdateThemeIcon();
 
+            // 根据主屏幕工作区逻辑高度动态调整窗口高度，防止高缩放模式下标题栏溢出屏幕
+            double workAreaHeight = SystemParameters.WorkArea.Height;
+            if (workAreaHeight < 800)
+            {
+                this.Height = 600;
+            }
+            else
+            {
+                this.Height = 770;
+            }
+
             // 订阅系统日志，并在界面展示
             Logger.OnLogWritten += Logger_OnLogWritten;
 
