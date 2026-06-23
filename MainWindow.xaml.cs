@@ -1724,6 +1724,17 @@ namespace rdpManager
             base.OnClosed(e);
         }
 
+        private void BtnFakeLockScreen_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new rdpManager.Views.LockPasswordDialog();
+            dialog.Owner = this;
+            if (dialog.ShowDialog() == true)
+            {
+                string pwd = dialog.Password;
+                rdpManager.Views.FakeLockWindow.ShowLock(pwd);
+            }
+        }
+
         private void BtnThemeToggle_Click(object sender, RoutedEventArgs e)
         {
             ThemeMode nextMode;
