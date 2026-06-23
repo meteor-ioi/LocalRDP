@@ -206,46 +206,50 @@ namespace rdpManager.Views
         {
             if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
             {
-                KBDLLHOOKSTRUCT kb = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
-
-                bool alt = (kb.flags & 0x20) != 0; // LLKHF_ALTDOWN
-                bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-                bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-
-                // 屏蔽 Win 键
-                if (kb.vkCode == 91 || kb.vkCode == 92)
+                object? obj = Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+                if (obj != null)
                 {
-                    return (IntPtr)1;
-                }
+                    KBDLLHOOKSTRUCT kb = (KBDLLHOOKSTRUCT)obj;
 
-                // 屏蔽 Alt + Tab
-                if (kb.vkCode == 9 && alt)
-                {
-                    return (IntPtr)1;
-                }
+                    bool alt = (kb.flags & 0x20) != 0; // LLKHF_ALTDOWN
+                    bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+                    bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
-                // 屏蔽 Alt + Esc
-                if (kb.vkCode == 27 && alt)
-                {
-                    return (IntPtr)1;
-                }
+                    // 屏蔽 Win 键
+                    if (kb.vkCode == 91 || kb.vkCode == 92)
+                    {
+                        return (IntPtr)1;
+                    }
 
-                // 屏蔽 Ctrl + Esc
-                if (kb.vkCode == 27 && ctrl)
-                {
-                    return (IntPtr)1;
-                }
+                    // 屏蔽 Alt + Tab
+                    if (kb.vkCode == 9 && alt)
+                    {
+                        return (IntPtr)1;
+                    }
 
-                // 屏蔽 Ctrl + Shift + Esc
-                if (kb.vkCode == 27 && ctrl && shift)
-                {
-                    return (IntPtr)1;
-                }
+                    // 屏蔽 Alt + Esc
+                    if (kb.vkCode == 27 && alt)
+                    {
+                        return (IntPtr)1;
+                    }
 
-                // 屏蔽 Alt + F4
-                if (kb.vkCode == 115 && alt)
-                {
-                    return (IntPtr)1;
+                    // 屏蔽 Ctrl + Esc
+                    if (kb.vkCode == 27 && ctrl)
+                    {
+                        return (IntPtr)1;
+                    }
+
+                    // 屏蔽 Ctrl + Shift + Esc
+                    if (kb.vkCode == 27 && ctrl && shift)
+                    {
+                        return (IntPtr)1;
+                    }
+
+                    // 屏蔽 Alt + F4
+                    if (kb.vkCode == 115 && alt)
+                    {
+                        return (IntPtr)1;
+                    }
                 }
             }
 

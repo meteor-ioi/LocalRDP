@@ -5,7 +5,7 @@ namespace rdpManager.Views
 {
     public partial class LockPasswordDialog : Window
     {
-        public string Password { get; private set; }
+        public string Password { get; private set; } = string.Empty;
 
         public LockPasswordDialog()
         {
