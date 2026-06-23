@@ -657,8 +657,8 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="分辨率" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="ComboResolution" Style="{StaticResource ModernComboBox}">
-                                        <ComboBoxItem Content="自适应窗口" Tag="0x0"/>
                                         <ComboBoxItem Content="全屏模式" Tag="fullscreen"/>
+                                        <ComboBoxItem Content="1280×720" Tag="1280x720"/>
                                         <ComboBoxItem Content="1920×1080" Tag="1920x1080"/>
                                         <ComboBoxItem Content="2560×1440" Tag="2560x1440"/>
                                         <ComboBoxItem Content="3840×2160" Tag="3840x2160"/>

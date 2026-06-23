@@ -38,6 +38,7 @@ namespace rdpManager
         private const uint ES_DISPLAY_REQUIRED = 0x00000002;
 
         private Dictionary<int, DateTime> _sessionStartTimes = new Dictionary<int, DateTime>();
+        private readonly System.Collections.ObjectModel.ObservableCollection<SessionItem> _sessionsCollection = new System.Collections.ObjectModel.ObservableCollection<SessionItem>();
 
         // Win32 API 辅助方法，用于保活断开时隐藏 RDP 窗口，恢复连接时显示
         [DllImport("user32.dll")]
@@ -255,8 +256,11 @@ namespace rdpManager
             // 加载初始诊断状态
             RefreshDiagnosticStatus();
 
+            // 绑定会话集合到 ListBox，避免直接替换 ItemsSource 导致 UI 重建闪烁
+            ListSessions.ItemsSource = _sessionsCollection;
+
             // 加载分辨率和缩放默认选项
-            ComboResolution.SelectedIndex = 0; // 自适应窗口
+            ComboResolution.SelectedIndex = 0; // 全屏模式
             ComboScale.SelectedIndex = 0;      // 100%
 
             // 加载账号列表
@@ -309,19 +313,16 @@ namespace rdpManager
 
         private void DurationTimer_Tick(object? sender, EventArgs e)
         {
-            if (ListSessions.ItemsSource is IEnumerable<SessionItem> items)
+            foreach (var item in _sessionsCollection)
             {
-                foreach (var item in items)
+                if (item.IsActive && item.LogonTime.HasValue)
                 {
-                    if (item.IsActive && item.LogonTime.HasValue)
-                    {
-                        var duration = DateTime.Now - item.LogonTime.Value;
-                        item.DurationText = string.Format("{0:D2}:{1:D2}:{2:D2}", duration.Hours + (duration.Days * 24), duration.Minutes, duration.Seconds);
-                    }
-                    else
-                    {
-                        item.DurationText = string.Empty;
-                    }
+                    var duration = DateTime.Now - item.LogonTime.Value;
+                    item.DurationText = string.Format("{0:D2}:{1:D2}:{2:D2}", duration.Hours + (duration.Days * 24), duration.Minutes, duration.Seconds);
+                }
+                else
+                {
+                    item.DurationText = string.Empty;
                 }
             }
         }
@@ -556,6 +557,30 @@ namespace rdpManager
             }
         }
 
+        private void UpdateConnectButtonState()
+        {
+            string selected = ComboAccounts.SelectedItem as string ?? string.Empty;
+            if (string.IsNullOrEmpty(selected) || selected == "暂无系统用户")
+            {
+                BtnConnectVirtualDesktop.IsEnabled = false;
+                return;
+            }
+
+            // 检查 _sessionsCollection 中是否存在当前选中账号的会话
+            bool hasSession = _sessionsCollection.Any(s => s.Username.Equals(selected, StringComparison.OrdinalIgnoreCase));
+            
+            if (hasSession)
+            {
+                BtnConnectVirtualDesktop.IsEnabled = false;
+                BtnConnectVirtualDesktop.ToolTip = "已存在该账号的活动或断开会话，不支持重复连接。请使用下方活跃会话管理中的“打开会话”或“彻底退出”操作。";
+            }
+            else
+            {
+                BtnConnectVirtualDesktop.IsEnabled = true;
+                BtnConnectVirtualDesktop.ToolTip = null;
+            }
+        }
+
         private void ComboAccounts_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             string selected = ComboAccounts.SelectedItem as string ?? string.Empty;
@@ -563,6 +588,7 @@ namespace rdpManager
             {
                 UpdatePasswordFields(string.Empty);
                 BtnConnectVirtualDesktop.Content = "🔌 连接虚拟桌面";
+                BtnConnectVirtualDesktop.IsEnabled = false;
                 return;
             }
 
@@ -577,6 +603,9 @@ namespace rdpManager
             {
                 UpdatePasswordFields(string.Empty);
             }
+
+            // 更新连接按钮使能状态
+            UpdateConnectButtonState();
         }
 
         private void UpdatePasswordFields(string pwd)
@@ -935,7 +964,7 @@ namespace rdpManager
         {
             try
             {
-                var sessions = new List<SessionItem>();
+                var parsedSessions = new List<SessionItem>();
                 
                 var psi = new ProcessStartInfo("qwinsta")
                 {
@@ -996,7 +1025,12 @@ namespace rdpManager
                                 if (int.TryParse(idStr, out int sessionId))
                                 {
                                     bool isConsole = processedLine.Contains("console", StringComparison.OrdinalIgnoreCase);
-                                    string username = isConsole ? "console" : "RDP回环会话";
+                                    
+                                    // 1. ”活跃会话管理“中，默认的系统主桌面，这个物理控制台会话不需要显示，帮我去掉它。
+                                    if (isConsole)
+                                        continue;
+
+                                    string username = "RDP回环会话";
                                     if (stateIndex >= 2)
                                     {
                                         string candidate = tokens[stateIndex - 2];
@@ -1019,7 +1053,7 @@ namespace rdpManager
                                         _sessionStartTimes.Remove(sessionId);
                                     }
 
-                                    sessions.Add(new SessionItem
+                                    parsedSessions.Add(new SessionItem
                                     {
                                         SessionId = sessionId,
                                         Username = username,
@@ -1038,14 +1072,42 @@ namespace rdpManager
 
                 Dispatcher.Invoke(() =>
                 {
-                    ListSessions.ItemsSource = sessions;
-                    SessionCountBadge.Text = sessions.Count.ToString();
-                    NoSessionsPlaceholder.Visibility = sessions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                    // 增量更新会话集合，防止列表重新赋值导致 UI 重建闪烁
+                    // 1. 移除已不存在的会话
+                    for (int i = _sessionsCollection.Count - 1; i >= 0; i--)
+                    {
+                        var existing = _sessionsCollection[i];
+                        if (!parsedSessions.Any(p => p.SessionId == existing.SessionId))
+                        {
+                            _sessionsCollection.RemoveAt(i);
+                        }
+                    }
+
+                    // 2. 更新或添加新解析的会话
+                    foreach (var parsed in parsedSessions)
+                    {
+                        var existing = _sessionsCollection.FirstOrDefault(e => e.SessionId == parsed.SessionId);
+                        if (existing != null)
+                        {
+                            existing.StateText = parsed.StateText;
+                            existing.IsActive = parsed.IsActive;
+                            existing.LogonTime = parsed.LogonTime;
+                        }
+                        else
+                        {
+                            _sessionsCollection.Add(parsed);
+                        }
+                    }
+
+                    SessionCountBadge.Text = _sessionsCollection.Count.ToString();
+                    NoSessionsPlaceholder.Visibility = _sessionsCollection.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+                    // 检查连接按钮的启用状态
+                    UpdateConnectButtonState();
                 });
             }
             catch (Exception ex)
             {
-                // 静默容错或打印到日志，不打扰用户
                 Logger.LogWarning($"轮询刷新系统会话状态出错: {ex.Message}");
             }
         }
@@ -1159,7 +1221,7 @@ namespace rdpManager
                             int height = 1080;
                             if (ComboResolution.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resTag)
                             {
-                                if (resTag != "0x0" && resTag.Contains("x"))
+                                if (resTag.Contains("x"))
                                 {
                                     var parts = resTag.Split('x');
                                     if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
@@ -1417,13 +1479,7 @@ namespace rdpManager
                 // 分辨率配置
                 if (ComboResolution.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resTag)
                 {
-                    if (resTag == "0x0")
-                    {
-                        rdpContent.AppendLine("screen mode id:i:1"); // 窗口模式
-                        rdpContent.AppendLine("desktopwidth:i:1280");
-                        rdpContent.AppendLine("desktopheight:i:720");
-                    }
-                    else if (resTag.Contains("x"))
+                    if (resTag.Contains("x"))
                     {
                         var parts = resTag.Split('x');
                         rdpContent.AppendLine("screen mode id:i:1"); // 窗口模式
@@ -1666,7 +1722,14 @@ namespace rdpManager
 
         public int SessionId { get; set; }
         public string Username { get; set; } = string.Empty;
-        public string StateText { get; set; } = string.Empty;
+
+        private string _stateText = string.Empty;
+        public string StateText
+        {
+            get => _stateText;
+            set { if (_stateText != value) { _stateText = value; OnPropertyChanged(nameof(StateText)); } }
+        }
+
         public string IconText => IsActive ? "\uE77B " : string.Empty;
         
         private string _durationText = string.Empty;
@@ -1679,7 +1742,26 @@ namespace rdpManager
         public bool IsConsole { get; set; }
         public bool IsCurrentUser { get; set; }
         
-        public DateTime? LogonTime { get; set; }
-        public bool IsActive { get; set; }
+        private DateTime? _logonTime;
+        public DateTime? LogonTime
+        {
+            get => _logonTime;
+            set { if (_logonTime != value) { _logonTime = value; OnPropertyChanged(nameof(LogonTime)); } }
+        }
+
+        private bool _isActive;
+        public bool IsActive
+        {
+            get => _isActive;
+            set 
+            { 
+                if (_isActive != value) 
+                { 
+                    _isActive = value; 
+                    OnPropertyChanged(nameof(IsActive)); 
+                    OnPropertyChanged(nameof(IconText)); 
+                } 
+            }
+        }
     }
 }
