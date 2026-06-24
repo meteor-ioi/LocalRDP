@@ -515,12 +515,12 @@ namespace rdpManager.Helpers
                         if (string.IsNullOrWhiteSpace(line))
                             continue;
 
-                        if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
+                        if (line.IndexOf("SESSIONNAME", StringComparison.OrdinalIgnoreCase) >= 0 || line.Contains("会话名"))
                             continue;
 
                         // 跳过 console 和 services 会话（这两个是系统核心会话，不应注销）
-                        if (line.Contains("console", StringComparison.OrdinalIgnoreCase) ||
-                            line.Contains("services", StringComparison.OrdinalIgnoreCase))
+                        if (line.IndexOf("console", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            line.IndexOf("services", StringComparison.OrdinalIgnoreCase) >= 0)
                             continue;
 
                         // 替换 '>' 为空格，避免会话名与前缀粘连导致 tokens 错位
@@ -965,10 +965,10 @@ namespace rdpManager.Helpers
                         if (string.IsNullOrWhiteSpace(line))
                             continue;
 
-                        if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
+                        if (line.IndexOf("SESSIONNAME", StringComparison.OrdinalIgnoreCase) >= 0 || line.Contains("会话名"))
                             continue;
 
-                        if (line.Contains("services", StringComparison.OrdinalIgnoreCase))
+                        if (line.IndexOf("services", StringComparison.OrdinalIgnoreCase) >= 0)
                             continue;
 
                         string processedLine = line.Replace('>', ' ');
