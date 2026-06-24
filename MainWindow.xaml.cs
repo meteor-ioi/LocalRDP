@@ -1682,7 +1682,7 @@ namespace rdpManager
                 // 优先使用当前 EXE 嵌入的 icon.ico 图标
                 try
                 {
-                    string? exePath = System.Environment.ProcessPath;
+                    string? exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
                     if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
                     {
                         _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
