@@ -866,7 +866,7 @@ namespace rdpManager
                         foreach (string line in output.Split('\n'))
                         {
                             if (string.IsNullOrWhiteSpace(line)) continue;
-                            if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
+                            if (line.IndexOf("SESSIONNAME", StringComparison.OrdinalIgnoreCase) >= 0 || line.Contains("会话名"))
                                 continue;
                             
                             // 替换 '>' 为空格，避免会话名与前缀粘连导致 tokens 错位
@@ -1003,11 +1003,11 @@ namespace rdpManager
                                 continue;
 
                             // 过滤表头 (支持中英文)
-                            if (line.Contains("SESSIONNAME", StringComparison.OrdinalIgnoreCase) || line.Contains("会话名"))
+                            if (line.IndexOf("SESSIONNAME", StringComparison.OrdinalIgnoreCase) >= 0 || line.Contains("会话名"))
                                 continue;
 
                             // 仅过滤 services 核心会话（保留 console）
-                            if (line.Contains("services", StringComparison.OrdinalIgnoreCase))
+                            if (line.IndexOf("services", StringComparison.OrdinalIgnoreCase) >= 0)
                                 continue;
 
                             // 替换 '>' 为空格，避免会话名与前缀粘连导致 tokens 错位
@@ -1040,7 +1040,7 @@ namespace rdpManager
                                 string idStr = tokens[stateIndex - 1];
                                 if (int.TryParse(idStr, out int sessionId))
                                 {
-                                    bool isConsole = processedLine.Contains("console", StringComparison.OrdinalIgnoreCase);
+                                    bool isConsole = processedLine.IndexOf("console", StringComparison.OrdinalIgnoreCase) >= 0;
                                     
                                     // 1. ”活跃会话管理“中，默认的系统主桌面，这个物理控制台会话不需要显示，帮我去掉它。
                                     if (isConsole)
