@@ -173,7 +173,7 @@ flowchart TD
 ## 🧑‍💻 开发与系统环境要求
 
 - **操作系统**：Windows 10 / Windows 11 (x64) 的所有版本（包括家庭版、专业版、企业版及 LTSC 长期服务版）。
-- **运行环境**：.NET Desktop Runtime 8.0 (x64) 及以上。
+- **运行环境**：无需安装额外运行时（Windows 10 / Windows 11 已默认内置 .NET Framework 4.8 运行环境）。
 - **编译工具（如需二次开发）**：Visual Studio 2022。
 
 ---

@@ -97,18 +97,14 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore Dependencies
-      run: msbuild rdpManager.csproj /t:Restore /p:Configuration=Release /p:RuntimeIdentifier=win-x64
+      run: msbuild rdpManager.csproj /t:Restore /p:Configuration=Release
 
-    - name: Publish Application (win-x64 Single File)
+    - name: Build Application
       run: |
         msbuild rdpManager.csproj `
-          /t:Publish `
+          /t:Rebuild `
           /p:Configuration=Release `
-          /p:RuntimeIdentifier=win-x64 `
-          /p:SelfContained=false `
-          /p:PublishSingleFile=true `
-          /p:PublishReadyToRun=false `
-          /p:PublishDir=./publish
+          /p:OutputPath=./publish
 
     - name: Prepare Artifacts & Build Setup Installer
       shell: pwsh
